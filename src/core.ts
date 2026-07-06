@@ -22,6 +22,18 @@ export function None<M>(): Maybe<M> {
   return { type: "Maybe", Variant: "None", Data: null };
 }
 
+export function isSome<M>(
+  m: Maybe<M>,
+): m is { type: "Maybe"; Variant: "Some"; Data: M } {
+  return m.Variant === "Some";
+}
+
+export function isNone(
+  m: Maybe<any>,
+): m is { type: "Maybe"; Variant: "None"; Data: null } {
+  return m.Variant === "None";
+}
+
 export function Result<O extends T.ZodType, E extends T.ZodType>(
   o: O,
   e: E,
@@ -39,6 +51,18 @@ export function Ok<L>(l: L): Result<L, never> {
 }
 export function Err<R>(r: R): Result<never, R> {
   return { type: "Result", Variant: "Err", Data: r };
+}
+
+export function isOk<O, E>(
+  r: Result<O, E>,
+): r is { type: "Result"; Variant: "Ok"; Data: O } {
+  return r.Variant === "Ok";
+}
+
+export function isErr<O, E>(
+  r: Result<O, E>,
+): r is { type: "Result"; Variant: "Err"; Data: E } {
+  return r.Variant === "Err";
 }
 
 type SomeFn = {

@@ -48,6 +48,7 @@ type MergeReaderObj<Rdr, Obj> = Merge<Rdr, {
         reads: any;
     } ? Merge<Rdr["reads"], Obj> : Obj;
 }>;
+export declare function readingWith<Obj, ResB, ErrB, RdrB extends BaseReader, AB extends boolean>(obj: Obj, m: () => Xt<ResB, ErrB, MergeReaderObj<RdrB, Obj>, AB>): Xt<ResB, ErrB, RdrB, AB>;
 export declare function mapping<ROut, RIn, ErrB, RdrB extends BaseReader, AB extends boolean>(vals: RIn[], f: (r: RIn, i: number) => Xt<ROut, ErrB, RdrB, AB>): Xt<ROut[], ErrB, RdrB, AB>;
 export declare function trying<ResB, ErrB, RdrB extends BaseReader, AB extends boolean>(m: () => Xt<ResB, ErrB, RdrB, AB>, c: (e: unknown) => $.Result<ResB, ErrB>): Xt<ResB, ErrB, RdrB, AB>;
 export declare function catching<ResB, ErrB, RdrB extends BaseReader, AB extends boolean, E>(m: () => Xt<ResB, ErrB, RdrB, AB>, c: (e: ErrB) => $.Result<ResB, E>): Xt<ResB, E, RdrB, AB>;
@@ -60,7 +61,10 @@ export declare function xLog<L>(l: L): Logs<L, X>;
 export declare function xWarn<W>(w: W): Warns<W, X>;
 export declare function ask<R>(): Reads<R, X<R>>;
 export declare function asks<R, Rt>(f: (r: R) => Rt): Reads<R, X<Rt>>;
-export declare function exec<ResB, ErrB>(m: () => Xt<ResB, ErrB, BaseReader, false>): $.Result<ResB, ErrB>;
+declare function exec_safe2<ResB, ErrB, RdrB extends BaseReader>(m: () => Xt<ResB, ErrB, RdrB, false>, d: Omit<RdrB, "logs" | "warns">): $.Result<ResB, ErrB>;
+declare function exec_safe1<ResB, ErrB>(m: () => Xt<ResB, ErrB, MergeReaderObj<BaseReader, Record<string, never>>, false>): $.Result<ResB, ErrB>;
+type Exec_Fn<ResB, ErrB, RdrB extends BaseReader> = typeof exec_safe1<ResB, ErrB> | typeof exec_safe2<ResB, ErrB, RdrB>;
+export declare function exec<ResB, ErrB, RdrB extends BaseReader>(...args: Parameters<Exec_Fn<ResB, ErrB, RdrB>>): ReturnType<Exec_Fn<ResB, ErrB, RdrB>>;
 export declare function execAsync<ResB, ErrB>(m: () => Xt<ResB, ErrB, BaseReader, true>): Promise<$.Result<ResB, ErrB>>;
 export declare function Xawait<Pt, Et>(mkPromise: () => Promise<Pt>, catcher?: CatcherType<Et, Pt>): Xa<Pt, Et>;
 export declare function maybe<Mt>(mk: (b: <It>(r: $.Maybe<It>) => X<It, undefined>) => X<Mt, undefined>): $.Maybe<Mt>;
@@ -68,9 +72,11 @@ export declare function pure<T>(t: T): X<T>;
 type ReadType<Rdr> = Rdr extends {
     reads: any;
 } ? Rdr["reads"] : never;
+type Fn0<R> = () => R;
 type ThisX<Err, Rdr extends BaseReader, A extends boolean> = {
     proxy: Proxy.Of<[Err, Rdr, A]>;
     ask: Xt<ReadType<Rdr>, never, Rdr, false>;
+    resumable: Xt<(<SRes, SErr>(x: Fn0<Xt<SRes, SErr, Rdr, A>>) => Xt<SRes, SErr, BaseReader, A>), never, Rdr, false>;
     asks: <Res>(f: (r: ReadType<Rdr>) => Res) => Xt<Res, never, Rdr, false>;
     reading<Obj, Res>(o: Obj, m: (this: ThisX<Err, MergeReaderObj<Rdr, Obj>, A>) => Xt<Res, Err, MergeReaderObj<Rdr, Obj>, A>): Xt<Res, Err, Rdr, A>;
     trying<Res>(m: (this: ThisX<Err, Rdr, A>) => Xt<Res, Err, Rdr, A>, c: (e: unknown) => $.Result<Res, Err>): Xt<Res, Err, Rdr, A>;

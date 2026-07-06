@@ -11,6 +11,12 @@ export function Some(m) {
 export function None() {
     return { type: "Maybe", Variant: "None", Data: null };
 }
+export function isSome(m) {
+    return m.Variant === "Some";
+}
+export function isNone(m) {
+    return m.Variant === "None";
+}
 export function Result(o, e) {
     return T.defVariant("Result", {
         Ok: o,
@@ -22,6 +28,12 @@ export function Ok(l) {
 }
 export function Err(r) {
     return { type: "Result", Variant: "Err", Data: r };
+}
+export function isOk(r) {
+    return r.Variant === "Ok";
+}
+export function isErr(r) {
+    return r.Variant === "Err";
 }
 export const some = (...args) => {
     const [arg1, arg2 = undefined] = args;

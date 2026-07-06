@@ -1,6 +1,6 @@
 import * as $ from "./core.js";
 import * as Proxy from "./proxy.js";
-function readingWith(obj, m) {
+export function readingWith(obj, m) {
     return _r(m, (rIn) => Object.assign({}, rIn, { reads: Object.assign({}, (rIn || {}).reads, obj) }));
 }
 export function* mapping(vals, f) {
@@ -169,13 +169,24 @@ async function execRaw(m, onDone) {
         }
     }
 }
-export function exec(m) {
+function exec_safe2(m, d) {
     let res = undefined;
-    execRaw(m, (finalRes) => (res = finalRes));
+    execRaw(() => readingWith(d.reads, m), (finalRes) => (res = finalRes));
     if (!res) {
         throw "non-terminated rwse monad";
     }
     return res;
+}
+function exec_safe1(m) {
+    let res = undefined;
+    execRaw(() => readingWith({}, m), (finalRes) => (res = finalRes));
+    if (!res) {
+        throw "non-terminated rwse monad";
+    }
+    return res;
+}
+export function exec(...args) {
+    return args.length === 1 ? exec_safe1(...args) : exec_safe2(...args);
 }
 export function execAsync(m) {
     return new Promise((resolve) => execRaw(m, resolve));
@@ -201,6 +212,14 @@ export function* pure(t) {
 }
 export function X(f) {
     const xThis = {
+        get resumable() {
+            return (function* () {
+                const { reader } = yield { cmd: "GET" };
+                return function* (m) {
+                    return yield* _r(m, () => reader);
+                };
+            })();
+        },
         get ask() {
             return (function* () {
                 const r = yield { cmd: "GET" };

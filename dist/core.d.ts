@@ -17,6 +17,16 @@ export type Maybe_X<T extends Maybe<any>> = NonNullable<T & {
 } extends Maybe<infer M> ? M : never>;
 export declare function Some<M>(m: M): Maybe<M>;
 export declare function None<M>(): Maybe<M>;
+export declare function isSome<M>(m: Maybe<M>): m is {
+    type: "Maybe";
+    Variant: "Some";
+    Data: M;
+};
+export declare function isNone(m: Maybe<any>): m is {
+    type: "Maybe";
+    Variant: "None";
+    Data: null;
+};
 export declare function Result<O extends T.ZodType, E extends T.ZodType>(o: O, e: E): T.VariantDef<"Result", {
     Ok: O;
     Err: E;
@@ -32,6 +42,16 @@ export type Result<O, E> = {
 };
 export declare function Ok<L>(l: L): Result<L, never>;
 export declare function Err<R>(r: R): Result<never, R>;
+export declare function isOk<O, E>(r: Result<O, E>): r is {
+    type: "Result";
+    Variant: "Ok";
+    Data: O;
+};
+export declare function isErr<O, E>(r: Result<O, E>): r is {
+    type: "Result";
+    Variant: "Err";
+    Data: E;
+};
 type SomeFn = {
     <Mt, Et>(m: Maybe<Mt>, e: Et): Result<Mt, Et>;
     <Mt>(m: Maybe<Mt>): Result<Mt, undefined>;

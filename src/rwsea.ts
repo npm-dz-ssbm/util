@@ -94,7 +94,7 @@ type MergeReaderObj<Rdr, Obj> = Merge<
   { reads: Rdr extends { reads: any } ? Merge<Rdr["reads"], Obj> : Obj }
 >;
 
-function readingWith<
+export function readingWith<
   Obj,
   ResB,
   ErrB,
@@ -348,15 +348,48 @@ async function execRaw<ResB, ErrB, AB extends boolean>(
   }
 }
 
-export function exec<ResB, ErrB>(
-  m: () => Xt<ResB, ErrB, BaseReader, false>,
+function exec_safe2<ResB, ErrB, RdrB extends BaseReader>(
+  m: () => Xt<ResB, ErrB, RdrB, false>,
+  d: Omit<RdrB, "logs" | "warns">,
 ): $.Result<ResB, ErrB> {
   let res: undefined | $.Result<ResB, ErrB> = undefined;
-  execRaw(m, (finalRes) => (res = finalRes));
+  execRaw(
+    () => readingWith((d as any).reads, m as any),
+    (finalRes) => (res = finalRes as any),
+  );
   if (!res) {
     throw "non-terminated rwse monad";
   }
   return res;
+}
+
+function exec_safe1<ResB, ErrB>(
+  m: () => Xt<
+    ResB,
+    ErrB,
+    MergeReaderObj<BaseReader, Record<string, never>>,
+    false
+  >,
+): $.Result<ResB, ErrB> {
+  let res: undefined | $.Result<ResB, ErrB> = undefined;
+  execRaw(
+    () => readingWith({}, m as any),
+    (finalRes) => (res = finalRes as any),
+  );
+  if (!res) {
+    throw "non-terminated rwse monad";
+  }
+  return res;
+}
+
+type Exec_Fn<ResB, ErrB, RdrB extends BaseReader> =
+  | typeof exec_safe1<ResB, ErrB>
+  | typeof exec_safe2<ResB, ErrB, RdrB>;
+
+export function exec<ResB, ErrB, RdrB extends BaseReader>(
+  ...args: Parameters<Exec_Fn<ResB, ErrB, RdrB>>
+): ReturnType<Exec_Fn<ResB, ErrB, RdrB>> {
+  return args.length === 1 ? exec_safe1(...args) : exec_safe2(...args);
 }
 
 export function execAsync<ResB, ErrB>(
@@ -394,9 +427,20 @@ export function* pure<T>(t: T): X<T> {
 
 type ReadType<Rdr> = Rdr extends { reads: any } ? Rdr["reads"] : never;
 
+type Fn0<R> = () => R;
+type Fn1<A, R> = (a: A) => R;
+
 type ThisX<Err, Rdr extends BaseReader, A extends boolean> = {
   proxy: Proxy.Of<[Err, Rdr, A]>;
   ask: Xt<ReadType<Rdr>, never, Rdr, false>;
+  resumable: Xt<
+    <SRes, SErr>(
+      x: Fn0<Xt<SRes, SErr, Rdr, A>>,
+    ) => Xt<SRes, SErr, BaseReader, A>,
+    never,
+    Rdr,
+    false
+  >;
   asks: <Res>(f: (r: ReadType<Rdr>) => Res) => Xt<Res, never, Rdr, false>;
   reading<Obj, Res>(
     o: Obj,
@@ -423,6 +467,23 @@ export function X<
   f: (this: ThisX<Err, Rdr, A>, ...args: Args) => Xt<Res, Err, Rdr, A>,
 ): (...args: Args) => Xt<Res, Err, Rdr, A> {
   const xThis: ThisX<Err, Rdr, A> = {
+    get resumable() {
+      return (function* (): Xt<
+        <SRes, SErr>(
+          x: Fn0<Xt<SRes, SErr, Rdr, A>>,
+        ) => Xt<SRes, SErr, BaseReader, A>,
+        never,
+        Rdr,
+        false
+      > {
+        const { reader } = yield { cmd: "GET" };
+        return function* <SRes, SErr>(
+          m: Fn0<Xt<SRes, SErr, Rdr, A>>,
+        ): Xt<SRes, SErr, Rdr, A> {
+          return yield* _r(m, () => reader);
+        };
+      })();
+    },
     get ask() {
       return (function* (): Xt<ReadType<Rdr>, never, Rdr, never> {
         const r = yield { cmd: "GET" };
