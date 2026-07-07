@@ -35,6 +35,12 @@ export function isOk(r) {
 export function isErr(r) {
     return r.Variant === "Err";
 }
+export function maybe$(m) {
+    return (onSome, onNone) => (isSome(m) ? onSome(m.Data) : onNone());
+}
+export function result$(r) {
+    return (onOk, onErr) => (isOk(r) ? onOk(r.Data) : onErr(r.Data));
+}
 export const some = (...args) => {
     const [arg1, arg2 = undefined] = args;
     if (arg1.Variant === "Some") {
@@ -128,5 +134,8 @@ export function mapValues(obj, fn) {
         acc[k] = fn(obj[k], k, obj);
         return acc;
     }, {});
+}
+export function greedy(f) {
+    return f();
 }
 //# sourceMappingURL=core.js.map

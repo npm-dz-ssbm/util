@@ -9,6 +9,9 @@ type BaseReader = {
   warns: (l: any) => void;
 };
 
+export type I = BaseReader;
+export type A = boolean;
+
 type CatcherType<Err, Res> = (e: any) => undefined | $.Result<Res, Err>;
 
 type XAwaitCmd<E> = {
@@ -27,17 +30,16 @@ type XNextType<R> = {
   awaited: any;
 };
 
-type Xt<Res, E, R extends BaseReader, A extends boolean> = Generator<
+export type Xt<Res, E, R extends BaseReader, A extends boolean> = Generator<
   XYieldType<E, A>,
   Res,
   XNextType<R>
 >;
 
 type GetReader<X> = X extends Xt<any, any, infer R, any> ? R : never;
-type OWReader<Rdr extends BaseReader, X> =
-  X extends Xt<infer Res, infer Err, any, infer A>
-    ? Xt<Res, Err, Rdr, A>
-    : never;
+type OWReader<Rdr extends BaseReader, X> = X extends
+  Xt<infer Res, infer Err, any, infer A> ? Xt<Res, Err, Rdr, A>
+  : never;
 
 export type Logs<L, X> = OWReader<
   Merge<GetReader<X>, { logs: (l: L) => void }>,
@@ -77,10 +79,9 @@ export type $X<Res, Err, R, A extends boolean> = Xt<
 >;
 export type $Xs<Res, Err, R> = $X<Res, Err, R, false>;
 export type $Xa<Res, Err, R> = $X<Res, Err, R, true>;
-export type $Xg<Res, Err, G> =
-  G extends BaseG<infer R, infer A>
-    ? Xt<Res, Err, R, A>
-    : Xt<Res, Err, BaseReader, boolean>;
+export type $Xg<Res, Err, G> = G extends BaseG<infer R, infer A>
+  ? Xt<Res, Err, R, A>
+  : Xt<Res, Err, BaseReader, boolean>;
 
 export type Xa<Res = void, E = never, R extends BaseReader = BaseReader> = Xt<
   Res,
@@ -103,10 +104,9 @@ export type Xa_<E = never, R extends BaseReader = BaseReader> = Xt<
 export type Xa_$<R extends BaseReader = BaseReader> = Xt<void, never, R, true>;
 
 export type Reads<R, X> = OWReader<Merge<GetReader<X>, { reads: R }>, X>;
-export type Throws<Err, X> =
-  X extends Xt<infer Res, any, infer Rdr, infer A>
-    ? Xt<Res, Err, Rdr, A>
-    : never;
+export type Throws<Err, X> = X extends Xt<infer Res, any, infer Rdr, infer A>
+  ? Xt<Res, Err, Rdr, A>
+  : never;
 /*
 export type Sync<Err, X> =
   X extends Xt<infer Res, infer Err, infer Rdr>
@@ -132,8 +132,7 @@ export function readingWith<
   return _r(m, (rIn) =>
     Object.assign({}, rIn, {
       reads: Object.assign({}, ((rIn || {}) as any).reads, obj),
-    }),
-  );
+    }));
 }
 
 export function* mapping<
@@ -200,18 +199,16 @@ export function* catching<
         const awaitYieldVal = {
           cmd: "AWAIT",
           val: v.val,
-          catcher: !promiseCatcher
-            ? undefined
-            : (e) => {
-                const i = promiseCatcher(e);
-                if (!i) {
-                  return undefined;
-                } else if (i.Variant === "Ok") {
-                  return $.Ok(i.Data);
-                } else {
-                  return c(i.Data);
-                }
-              },
+          catcher: !promiseCatcher ? undefined : (e) => {
+            const i = promiseCatcher(e);
+            if (!i) {
+              return undefined;
+            } else if (i.Variant === "Ok") {
+              return $.Ok(i.Data);
+            } else {
+              return c(i.Data);
+            }
+          },
         } as XYieldType<E, AB>;
         yieldNext = yield awaitYieldVal;
       } else {

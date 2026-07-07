@@ -1,12 +1,31 @@
 import test from "node:test";
 import assert from "node:assert";
 import * as $ from "../src/index.js";
+import * as X3 from "../src/rwsea3.js";
 
-const x3: () => $.Reads<{ a: number }, $.X$<number>> = $.X(function* () {
-  const a = yield* this.asks((r) => r.a);
-  yield* this.asks((r) => console.log("x3", { r, a }));
+function* z1(): X3.X$<number, { reads: { a: number; b: string } }> {
+  // const f = yield* X3.xAsks(({ a }) => ({ a }));
+  const f = { a: 27 };
+  yield* X3.xLog(["x3!", { a: f.a }]);
+  yield* X3.xErrors(["x3!", { a: f.a }]);
+  yield* X3.xWarns(["x3!", { a: f.a }]);
+  return f.a * 2;
+}
+
+function* z2(): X3.X$<number, { reads: { a: number } }> {
+  // console.log(yield* z1());
+  const f = yield* X3.xAsks((f) => f);
+  yield* X3.xLog(["x3!", { a: f.a }]);
+  yield* X3.xErrors(["x3!", { a: f.a }]);
+  yield* X3.xWarns(["x3!", { a: f.a }]);
+  return f.a * 2;
+}
+
+const x3: () => $.X$<number, { reads: { a: number } }> = function* () {
+  const a = yield* $.xAsks((r) => r.a);
+  yield* $.xAsks((r) => console.log("x3", { r, a }));
   return a;
-});
+};
 
 function* x2(a: number): $.X<number> {
   // yield* x3();
@@ -15,23 +34,23 @@ function* x2(a: number): $.X<number> {
   return a + b;
 }
 
-function* x1(): $.Reads<{ a: number }, $.X$<number>> {
+function* x1(): $.X$<number, { reads: { a: number } }> {
   const a = yield* x3();
   return yield* x2(a);
 }
 
-const x0: () => $.X<number> = $.X(function* () {
-  return yield* this.reading({ a: 5 }, x1);
-});
+const x0: () => $.X<number> = function* () {
+  return yield* $.xReads({ a: 5 }, x1);
+};
 
 function* x0a(): $.Xa<number> {
   const res = yield* x0();
-  return yield* $.Xawait(() => Promise.resolve(res));
+  return yield* $.xWait(() => Promise.resolve(res));
 }
 
 test(async function $_tests() {
   assert.deepStrictEqual($.exec(x0), $.Ok(13));
-  // assertEquals(await $.execAsync(x0a), $.Ok(13));
+  assert.deepStrictEqual(await $.execAsync(x0a), $.Ok(13));
   assert.deepStrictEqual($.quot(2, 3), 0);
   assert.deepStrictEqual($.quot(3, 3), 1);
   assert.deepStrictEqual($.quot(4, 3), 1);
@@ -57,13 +76,13 @@ test(async function $_tests() {
 });
 
 function* qt() {
-  return yield* $.catching(
-    function* (): $.X<number, number> {
-      const a1 = yield* $.ok($.some($.Some(1), 123));
-      const a2 = yield* $.ok($.some($.None<number>(), 1));
-      const a3 = yield* $.ok($.some($.Some(3), 2));
+  return yield* $.xIntercept(
+    $.greedy(function* (): $.X<number, number> {
+      const a1 = yield* $.xOk($.some($.Some(1), 123));
+      const a2 = yield* $.xOk($.some($.None<number>(), 1));
+      const a3 = yield* $.xOk($.some($.Some(3), 2));
       return a1 + a2 + a3;
-    },
+    }),
     (e) => $.Ok(e),
   );
 }

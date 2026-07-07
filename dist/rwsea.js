@@ -47,20 +47,18 @@ export function* catching(m, c) {
                 const awaitYieldVal = {
                     cmd: "AWAIT",
                     val: v.val,
-                    catcher: !promiseCatcher
-                        ? undefined
-                        : (e) => {
-                            const i = promiseCatcher(e);
-                            if (!i) {
-                                return undefined;
-                            }
-                            else if (i.Variant === "Ok") {
-                                return $.Ok(i.Data);
-                            }
-                            else {
-                                return c(i.Data);
-                            }
-                        },
+                    catcher: !promiseCatcher ? undefined : (e) => {
+                        const i = promiseCatcher(e);
+                        if (!i) {
+                            return undefined;
+                        }
+                        else if (i.Variant === "Ok") {
+                            return $.Ok(i.Data);
+                        }
+                        else {
+                            return c(i.Data);
+                        }
+                    },
                 };
                 yieldNext = yield awaitYieldVal;
             }

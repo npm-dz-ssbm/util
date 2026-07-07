@@ -52,6 +52,8 @@ export declare function isErr<O, E>(r: Result<O, E>): r is {
     Variant: "Err";
     Data: E;
 };
+export declare function maybe$<M>(m: Maybe<M>): <T>(s: (s: M) => T, n: () => T) => T;
+export declare function result$<O, E>(r: Result<O, E>): <T>(o: (o: O) => T, e: (e: E) => T) => T;
 type SomeFn = {
     <Mt, Et>(m: Maybe<Mt>, e: Et): Result<Mt, Et>;
     <Mt>(m: Maybe<Mt>): Result<Mt, undefined>;
@@ -83,5 +85,10 @@ export type WithAllPropertiesAs<R, T> = {
 export declare function mapValues<T extends object, R>(obj: T, fn: (value: T[keyof T], key: keyof T, object: T) => R): {
     [K in keyof T]: R;
 };
+export type Param0<F extends (...a: any[]) => any> = Parameters<F>[0];
+export type Param1<F extends (...a: any[]) => any> = Parameters<F>[1];
+export type Param2<F extends (...a: any[]) => any> = Parameters<F>[2];
+export type Merge<A, B> = Omit<A, keyof B> & B;
+export declare function greedy<R>(f: () => R): R;
 export {};
 //# sourceMappingURL=core.d.ts.map

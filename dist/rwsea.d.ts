@@ -6,6 +6,8 @@ type BaseReader = {
     logs: (l: any) => void;
     warns: (l: any) => void;
 };
+export type I = BaseReader;
+export type A = boolean;
 type CatcherType<Err, Res> = (e: any) => undefined | $.Result<Res, Err>;
 type XAwaitCmd<E> = {
     cmd: "AWAIT";
@@ -22,7 +24,7 @@ type XNextType<R> = {
     reader: R;
     awaited: any;
 };
-type Xt<Res, E, R extends BaseReader, A extends boolean> = Generator<XYieldType<E, A>, Res, XNextType<R>>;
+export type Xt<Res, E, R extends BaseReader, A extends boolean> = Generator<XYieldType<E, A>, Res, XNextType<R>>;
 type GetReader<X> = X extends Xt<any, any, infer R, any> ? R : never;
 type OWReader<Rdr extends BaseReader, X> = X extends Xt<infer Res, infer Err, any, infer A> ? Xt<Res, Err, Rdr, A> : never;
 export type Logs<L, X> = OWReader<Merge<GetReader<X>, {

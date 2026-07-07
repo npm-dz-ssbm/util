@@ -200,3 +200,13 @@ export function mapValues<T extends object, R>(
     {} as { [K in keyof T]: R },
   );
 }
+
+export type Param0<F extends (...a: any[]) => any> = Parameters<F>[0];
+export type Param1<F extends (...a: any[]) => any> = Parameters<F>[1];
+export type Param2<F extends (...a: any[]) => any> = Parameters<F>[2];
+
+export type Merge<A, B> = Omit<A, keyof B> & B;
+
+export function greedy<R>(f: () => R): R {
+  return f();
+}
