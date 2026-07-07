@@ -27,8 +27,9 @@ type FullI<I> = {
     : (I extends { reads: any } ? I["reads"] : AssumedI["reads"]);
 };
 
-type BaseXYields<E, A> =
+type BaseXYields<E, I, A> =
   | CmdT<"Pass", {}>
+  | CmdT<"Get", { Proxy: Proxy.Of<FullI<I>> }>
   | CmdT<"Fail", { err: E }>
   | (A extends AsyncTag ? CmdT<"Await", {
       promise: Promise<unknown>;
@@ -84,7 +85,7 @@ const getAnyReader = safeGetter<
 >("reads", {});
 
 export type X<R = void, E = never, I = never, A = never> = Generator<
-  BaseXYields<E, A>,
+  BaseXYields<E, I, A>,
   R,
   { i: FullI<I>; a: any }
 >;
@@ -146,6 +147,12 @@ export function* xAsks<T, I>(f: (r: FullI<I>["reads"]) => T): X$<T, I> {
 
 export function* xAsk<I>(): X$<FullI<I>["reads"], I> {
   return yield* xAsks((r) => r);
+}
+
+export function* xRead<I, K extends keyof FullI<I>["reads"]>(
+  k: K,
+): X$<FullI<I>["reads"][K], I> {
+  return yield* xAsks((r) => r[k]);
 }
 
 export function* xLog<I>(l: $.Param0<FullI<I>["logs"]>): X_$<I> {
@@ -257,7 +264,7 @@ export function* xIntercept<R, E, I, A, Eout>(
               return c(i.Data);
             }
           },
-        } as BaseXYields<Eout, A>;
+        } as BaseXYields<Eout, I, A>;
         yieldNext = yield awaitYieldVal;
       } else {
         yieldNext = yield v;

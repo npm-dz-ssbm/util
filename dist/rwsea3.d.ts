@@ -1,5 +1,6 @@
 import * as $ from "./core.js";
 import * as T from "./types.js";
+import * as Proxy from "./proxy.js";
 declare class AsyncTag {
 }
 type Catcher<Err, Res> = (e: any) => undefined | $.Result<Res, Err>;
@@ -26,13 +27,15 @@ type FullI<I> = {
         reads: any;
     } ? I["reads"] : AssumedI["reads"]);
 };
-type BaseXYields<E, A> = CmdT<"Pass", {}> | CmdT<"Fail", {
+type BaseXYields<E, I, A> = CmdT<"Pass", {}> | CmdT<"Get", {
+    Proxy: Proxy.Of<FullI<I>>;
+}> | CmdT<"Fail", {
     err: E;
 }> | (A extends AsyncTag ? CmdT<"Await", {
     promise: Promise<unknown>;
     catcher?: Catcher<E, unknown>;
 }> : never);
-export type X<R = void, E = never, I = never, A = never> = Generator<BaseXYields<E, A>, R, {
+export type X<R = void, E = never, I = never, A = never> = Generator<BaseXYields<E, I, A>, R, {
     i: FullI<I>;
     a: any;
 }>;
@@ -48,6 +51,7 @@ export declare function xFail<R, E>(err: E): X<R, E>;
 export declare function xOk<R, E>(r: $.Result<R, E>): X<R, E>;
 export declare function xAsks<T, I>(f: (r: FullI<I>["reads"]) => T): X$<T, I>;
 export declare function xAsk<I>(): X$<FullI<I>["reads"], I>;
+export declare function xRead<I, K extends keyof FullI<I>["reads"]>(k: K): X$<FullI<I>["reads"][K], I>;
 export declare function xLog<I>(l: $.Param0<FullI<I>["logs"]>): X_$<I>;
 export declare function xWarns<I>(w: $.Param0<FullI<I>["warns"]>): X_$<I>;
 export declare function xErrors<I>(e: $.Param0<FullI<I>["errors"]>): X_$<I>;

@@ -65,6 +65,9 @@ export function* xAsks(f) {
 export function* xAsk() {
     return yield* xAsks((r) => r);
 }
+export function* xRead(k) {
+    return yield* xAsks((r) => r[k]);
+}
 export function* xLog(l) {
     const i = yield* getInternal();
     i.logs(l);

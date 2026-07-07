@@ -4,7 +4,6 @@ import * as $ from "../src/index.js";
 import * as X3 from "../src/rwsea3.js";
 
 function* z1(): X3.X$<number, { reads: { a: number; b: string } }> {
-  // const f = yield* X3.xAsks(({ a }) => ({ a }));
   const f = { a: 27 };
   yield* X3.xLog(["x3!", { a: f.a }]);
   yield* X3.xErrors(["x3!", { a: f.a }]);
@@ -13,17 +12,15 @@ function* z1(): X3.X$<number, { reads: { a: number; b: string } }> {
 }
 
 function* z2(): X3.X$<number, { reads: { a: number } }> {
-  // console.log(yield* z1());
-  const f = yield* X3.xAsks((f) => f);
-  yield* X3.xLog(["x3!", { a: f.a }]);
-  yield* X3.xErrors(["x3!", { a: f.a }]);
-  yield* X3.xWarns(["x3!", { a: f.a }]);
-  return f.a * 2;
+  const a = yield* X3.xRead("a");
+  yield* X3.xLog(["x3!", { a }]);
+  yield* X3.xErrors(["x3!", { a }]);
+  yield* X3.xWarns(["x3!", { a }]);
+  return a * 2;
 }
 
 const x3: () => $.X$<number, { reads: { a: number } }> = function* () {
-  const a = yield* $.xAsks((r) => r.a);
-  yield* $.xAsks((r) => console.log("x3", { r, a }));
+  const a = yield* $.xRead("a");
   return a;
 };
 
