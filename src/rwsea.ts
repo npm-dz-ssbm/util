@@ -1,4 +1,5 @@
 import * as $ from "./core.js";
+import * as T from "./types.js";
 import * as Proxy from "./proxy.js";
 
 type Merge<A, B> = Omit<A, keyof B> & B;
@@ -25,11 +26,19 @@ type XNextType<R> = {
   reader: R;
   awaited: any;
 };
-type GetReader<X> = X extends Generator<any, any, { reader: infer R }> ? R
-  : never;
-type OWReader<Rdr, X> = X extends Generator<infer Y, infer Res, any>
-  ? Generator<Y, Res, XNextType<Rdr>>
-  : never;
+
+type Xt<Res, E, R extends BaseReader, A extends boolean> = Generator<
+  XYieldType<E, A>,
+  Res,
+  XNextType<R>
+>;
+
+type GetReader<X> = X extends Xt<any, any, infer R, any> ? R : never;
+type OWReader<Rdr extends BaseReader, X> =
+  X extends Xt<infer Res, infer Err, any, infer A>
+    ? Xt<Res, Err, Rdr, A>
+    : never;
+
 export type Logs<L, X> = OWReader<
   Merge<GetReader<X>, { logs: (l: L) => void }>,
   X
@@ -37,16 +46,6 @@ export type Logs<L, X> = OWReader<
 export type Warns<W, X> = OWReader<
   Merge<GetReader<X>, { logs: (l: W) => void }>,
   X
->;
-export type Reads<R, X> = OWReader<
-  Merge<GetReader<X>, { reads: R }>,
-  X
->;
-
-type Xt<Res, E, R extends BaseReader, A extends boolean> = Generator<
-  XYieldType<E, A>,
-  Res,
-  XNextType<R>
 >;
 
 export type X<Res = void, E = never, R extends BaseReader = BaseReader> = Xt<
@@ -69,6 +68,20 @@ export type X_<E = never, R extends BaseReader = BaseReader> = Xt<
 >;
 export type X_$<R extends BaseReader = BaseReader> = Xt<void, never, R, false>;
 
+type BaseG<R extends BaseReader, A extends boolean> = [R, A];
+export type $X<Res, Err, R, A extends boolean> = Xt<
+  Res,
+  Err,
+  Merge<BaseReader, R> extends BaseReader ? Merge<BaseReader, R> : BaseReader,
+  A
+>;
+export type $Xs<Res, Err, R> = $X<Res, Err, R, false>;
+export type $Xa<Res, Err, R> = $X<Res, Err, R, true>;
+export type $Xg<Res, Err, G> =
+  G extends BaseG<infer R, infer A>
+    ? Xt<Res, Err, R, A>
+    : Xt<Res, Err, BaseReader, boolean>;
+
 export type Xa<Res = void, E = never, R extends BaseReader = BaseReader> = Xt<
   Res,
   E,
@@ -89,6 +102,18 @@ export type Xa_<E = never, R extends BaseReader = BaseReader> = Xt<
 >;
 export type Xa_$<R extends BaseReader = BaseReader> = Xt<void, never, R, true>;
 
+export type Reads<R, X> = OWReader<Merge<GetReader<X>, { reads: R }>, X>;
+export type Throws<Err, X> =
+  X extends Xt<infer Res, any, infer Rdr, infer A>
+    ? Xt<Res, Err, Rdr, A>
+    : never;
+/*
+export type Sync<Err, X> =
+  X extends Xt<infer Res, infer Err, infer Rdr>
+    ? Xt<Res, Err, Rdr, false>
+    : never;
+    */
+
 type MergeReaderObj<Rdr, Obj> = Merge<
   Rdr,
   { reads: Rdr extends { reads: any } ? Merge<Rdr["reads"], Obj> : Obj }
@@ -104,14 +129,10 @@ export function readingWith<
   obj: Obj,
   m: () => Xt<ResB, ErrB, MergeReaderObj<RdrB, Obj>, AB>,
 ): Xt<ResB, ErrB, RdrB, AB> {
-  return _r(
-    m,
-    (rIn) =>
-      Object.assign(
-        {},
-        rIn,
-        { reads: Object.assign({}, ((rIn || {}) as any).reads, obj) },
-      ),
+  return _r(m, (rIn) =>
+    Object.assign({}, rIn, {
+      reads: Object.assign({}, ((rIn || {}) as any).reads, obj),
+    }),
   );
 }
 
@@ -179,16 +200,18 @@ export function* catching<
         const awaitYieldVal = {
           cmd: "AWAIT",
           val: v.val,
-          catcher: !promiseCatcher ? undefined : (e) => {
-            const i = promiseCatcher(e);
-            if (!i) {
-              return undefined;
-            } else if (i.Variant === "Ok") {
-              return $.Ok(i.Data);
-            } else {
-              return c(i.Data);
-            }
-          },
+          catcher: !promiseCatcher
+            ? undefined
+            : (e) => {
+                const i = promiseCatcher(e);
+                if (!i) {
+                  return undefined;
+                } else if (i.Variant === "Ok") {
+                  return $.Ok(i.Data);
+                } else {
+                  return c(i.Data);
+                }
+              },
         } as XYieldType<E, AB>;
         yieldNext = yield awaitYieldVal;
       } else {
@@ -261,9 +284,7 @@ export function* inverting<
   ErrB,
   RdrB extends BaseReader,
   AB extends boolean,
->(
-  m: () => Xt<ResB, ErrB, RdrB, AB>,
-): Xt<ErrB, ResB, RdrB, AB> {
+>(m: () => Xt<ResB, ErrB, RdrB, AB>): Xt<ErrB, ResB, RdrB, AB> {
   const regular = yield* resulting(m);
   return yield* ok($.invertResult(regular));
 }
@@ -505,4 +526,12 @@ export function X<
     fn: (f) => X(f),
   };
   return f.bind(xThis);
+}
+
+export function parseT<ZT extends T.ZodType>(
+  z: ZT,
+  u: unknown,
+): X<T.infer<ZT>, T.ZodError> {
+  const parsed = z.safeParse(u);
+  return ok(parsed.success ? $.Ok(parsed.data) : $.Err(parsed.error));
 }

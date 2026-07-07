@@ -1,4 +1,5 @@
 import * as $ from "./core.js";
+import * as T from "./types.js";
 import * as Proxy from "./proxy.js";
 type Merge<A, B> = Omit<A, keyof B> & B;
 type BaseReader = {
@@ -21,28 +22,32 @@ type XNextType<R> = {
     reader: R;
     awaited: any;
 };
-type GetReader<X> = X extends Generator<any, any, {
-    reader: infer R;
-}> ? R : never;
-type OWReader<Rdr, X> = X extends Generator<infer Y, infer Res, any> ? Generator<Y, Res, XNextType<Rdr>> : never;
+type Xt<Res, E, R extends BaseReader, A extends boolean> = Generator<XYieldType<E, A>, Res, XNextType<R>>;
+type GetReader<X> = X extends Xt<any, any, infer R, any> ? R : never;
+type OWReader<Rdr extends BaseReader, X> = X extends Xt<infer Res, infer Err, any, infer A> ? Xt<Res, Err, Rdr, A> : never;
 export type Logs<L, X> = OWReader<Merge<GetReader<X>, {
     logs: (l: L) => void;
 }>, X>;
 export type Warns<W, X> = OWReader<Merge<GetReader<X>, {
     logs: (l: W) => void;
 }>, X>;
-export type Reads<R, X> = OWReader<Merge<GetReader<X>, {
-    reads: R;
-}>, X>;
-type Xt<Res, E, R extends BaseReader, A extends boolean> = Generator<XYieldType<E, A>, Res, XNextType<R>>;
 export type X<Res = void, E = never, R extends BaseReader = BaseReader> = Xt<Res, E, R, false>;
 export type X$<Res = void, R extends BaseReader = BaseReader> = Xt<Res, never, R, false>;
 export type X_<E = never, R extends BaseReader = BaseReader> = Xt<void, E, R, false>;
 export type X_$<R extends BaseReader = BaseReader> = Xt<void, never, R, false>;
+type BaseG<R extends BaseReader, A extends boolean> = [R, A];
+export type $X<Res, Err, R, A extends boolean> = Xt<Res, Err, Merge<BaseReader, R> extends BaseReader ? Merge<BaseReader, R> : BaseReader, A>;
+export type $Xs<Res, Err, R> = $X<Res, Err, R, false>;
+export type $Xa<Res, Err, R> = $X<Res, Err, R, true>;
+export type $Xg<Res, Err, G> = G extends BaseG<infer R, infer A> ? Xt<Res, Err, R, A> : Xt<Res, Err, BaseReader, boolean>;
 export type Xa<Res = void, E = never, R extends BaseReader = BaseReader> = Xt<Res, E, R, true>;
 export type Xa$<Res = void, R extends BaseReader = BaseReader> = Xt<Res, never, R, true>;
 export type Xa_<E = never, R extends BaseReader = BaseReader> = Xt<void, E, R, true>;
 export type Xa_$<R extends BaseReader = BaseReader> = Xt<void, never, R, true>;
+export type Reads<R, X> = OWReader<Merge<GetReader<X>, {
+    reads: R;
+}>, X>;
+export type Throws<Err, X> = X extends Xt<infer Res, any, infer Rdr, infer A> ? Xt<Res, Err, Rdr, A> : never;
 type MergeReaderObj<Rdr, Obj> = Merge<Rdr, {
     reads: Rdr extends {
         reads: any;
@@ -83,5 +88,6 @@ type ThisX<Err, Rdr extends BaseReader, A extends boolean> = {
     fn: <FnArgs extends any[], FnRes>(f: (this: ThisX<Err, Rdr, A>, ...args: FnArgs) => Xt<FnRes, Err, Rdr, A>) => (...args: FnArgs) => Xt<FnRes, Err, Rdr, A>;
 };
 export declare function X<Args extends any[], Res, Err, Rdr extends BaseReader, A extends boolean>(f: (this: ThisX<Err, Rdr, A>, ...args: Args) => Xt<Res, Err, Rdr, A>): (...args: Args) => Xt<Res, Err, Rdr, A>;
+export declare function parseT<ZT extends T.ZodType>(z: ZT, u: unknown): X<T.infer<ZT>, T.ZodError>;
 export {};
 //# sourceMappingURL=rwsea.d.ts.map

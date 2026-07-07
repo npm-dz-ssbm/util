@@ -1,7 +1,10 @@
 import * as $ from "./core.js";
+import * as T from "./types.js";
 import * as Proxy from "./proxy.js";
 export function readingWith(obj, m) {
-    return _r(m, (rIn) => Object.assign({}, rIn, { reads: Object.assign({}, (rIn || {}).reads, obj) }));
+    return _r(m, (rIn) => Object.assign({}, rIn, {
+        reads: Object.assign({}, (rIn || {}).reads, obj),
+    }));
 }
 export function* mapping(vals, f) {
     const res = [];
@@ -44,18 +47,20 @@ export function* catching(m, c) {
                 const awaitYieldVal = {
                     cmd: "AWAIT",
                     val: v.val,
-                    catcher: !promiseCatcher ? undefined : (e) => {
-                        const i = promiseCatcher(e);
-                        if (!i) {
-                            return undefined;
-                        }
-                        else if (i.Variant === "Ok") {
-                            return $.Ok(i.Data);
-                        }
-                        else {
-                            return c(i.Data);
-                        }
-                    },
+                    catcher: !promiseCatcher
+                        ? undefined
+                        : (e) => {
+                            const i = promiseCatcher(e);
+                            if (!i) {
+                                return undefined;
+                            }
+                            else if (i.Variant === "Ok") {
+                                return $.Ok(i.Data);
+                            }
+                            else {
+                                return c(i.Data);
+                            }
+                        },
                 };
                 yieldNext = yield awaitYieldVal;
             }
@@ -236,5 +241,9 @@ export function X(f) {
         fn: (f) => X(f),
     };
     return f.bind(xThis);
+}
+export function parseT(z, u) {
+    const parsed = z.safeParse(u);
+    return ok(parsed.success ? $.Ok(parsed.data) : $.Err(parsed.error));
 }
 //# sourceMappingURL=rwsea.js.map
