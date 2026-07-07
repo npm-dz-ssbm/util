@@ -13,15 +13,6 @@ function safeGetter(k, d) {
         return d;
     };
 }
-const getAnyLogger = safeGetter("logs", (a) => {
-    console.log("base::xLog", a);
-});
-const getAnyWarner = safeGetter("warns", (a) => {
-    console.log("base::xWarn", a);
-});
-const getAnyErrorer = safeGetter("errors", (a) => {
-    console.log("base::xError", a);
-});
 const getAnyReader = safeGetter("reads", {});
 function* getYield() {
     return yield { cmd: "Pass" };
@@ -81,7 +72,7 @@ export function* xErrors(e) {
     i.errors(e);
 }
 export function xReads(reads, m) {
-    return withInternalMapped((i0) => Object.assign({}, i0, { reads: getAnyReader(i0) }, { reads }), m);
+    return withInternalMapped((i0) => Object.assign({}, i0, { reads: i0.reads }, { reads }), m);
 }
 export function* xTry(m, c) {
     try {
@@ -171,6 +162,9 @@ export function* xMap(vals, f) {
     }
     return res;
 }
+export function xMapErr(x, maps) {
+    return xIntercept(x, (e) => $.Err(maps(e)));
+}
 export function xFirst(m1, ...ms) {
     return xInvert($.greedy(function* () {
         let e = yield* xInvert(m1());
@@ -236,7 +230,7 @@ export function execAsync(...args) {
 }
 export function exec(...args) {
     let res = undefined;
-    execRaw(...args)((r) => res = r);
+    execRaw(...args)((r) => (res = r));
     if (!res) {
         throw "non-terminated rwse monad";
     }

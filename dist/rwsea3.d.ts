@@ -3,6 +3,7 @@ import * as T from "./types.js";
 import * as Proxy from "./proxy.js";
 declare class AsyncTag {
 }
+export type Async = AsyncTag;
 type Catcher<Err, Res> = (e: any) => undefined | $.Result<Res, Err>;
 type CmdT<K extends "Pass" | "Fail" | "Get" | "Await", D> = D & {
     cmd: K;
@@ -14,18 +15,18 @@ type AssumedI = {
     reads: {};
 };
 type FullI<I> = {
-    logs: [I] extends [never] ? AssumedI["logs"] : (I extends {
+    logs: [I] extends [never] ? AssumedI["logs"] : I extends {
         logs: (l: any) => void;
-    } ? I["logs"] : AssumedI["logs"]);
-    warns: [I] extends [never] ? AssumedI["warns"] : (I extends {
+    } ? I["logs"] : AssumedI["logs"];
+    warns: [I] extends [never] ? AssumedI["warns"] : I extends {
         warns: (l: any) => void;
-    } ? I["warns"] : AssumedI["warns"]);
-    errors: [I] extends [never] ? AssumedI["errors"] : (I extends {
+    } ? I["warns"] : AssumedI["warns"];
+    errors: [I] extends [never] ? AssumedI["errors"] : I extends {
         errors: (l: any) => void;
-    } ? I["errors"] : AssumedI["errors"]);
-    reads: [I] extends [never] ? AssumedI["reads"] : (I extends {
+    } ? I["errors"] : AssumedI["errors"];
+    reads: [I] extends [never] ? AssumedI["reads"] : I extends {
         reads: any;
-    } ? I["reads"] : AssumedI["reads"]);
+    } ? I["reads"] : AssumedI["reads"];
 };
 type BaseXYields<E, I, A> = CmdT<"Pass", {}> | CmdT<"Get", {
     Proxy: Proxy.Of<FullI<I>>;
@@ -69,9 +70,10 @@ export declare function xIntercept<R, E, I, A, Eout>(x: X<R, E, I, A>, c: (e: E)
 export declare function xResult<R, E, I, A>(x: X<R, E, I, A>): X<$.Result<R, E>, never, I, A>;
 export declare function xInvert<R, E, I, A>(x: X<R, E, I, A>): X<E, R, I, A>;
 export declare function xMap<Rout, Rin, E, I, A>(vals: Rin[], f: (r: Rin, i: number) => X<Rout, E, I, A>): X<Rout[], E, I, A>;
+export declare function xMapErr<Eout, R, Ein, I, A>(x: X<R, Ein, I, A>, maps: (e: Ein) => Eout): X<R, Eout, I, A>;
 export declare function xFirst<R, E, I, A>(m1: () => X<R, E, I, A>, ...ms: ((e: E) => X<R, E, I, A>)[]): X<R, E, I, A>;
 declare function execRaw_2<R, E, I, A>(m: () => X<R, E, I, A>, _i: I): (onDone: (er: $.Result<R, E>) => void) => Promise<void>;
-declare function execRaw_1<R, E, A>(m: () => X<R, E, never, A>): (onDone: (er: $.Result<R, E>) => void) => Promise<void>;
+declare function execRaw_1<R, E, A>(m: () => X<R, E, Record<string, undefined>, A>): (onDone: (er: $.Result<R, E>) => void) => Promise<void>;
 type Exec_Raw_Fn<R, E, I, A> = typeof execRaw_1<R, E, A> | typeof execRaw_2<R, E, I, A>;
 export declare function execAsync<R, E, I>(...args: Parameters<Exec_Raw_Fn<R, E, I, AsyncTag>>): Promise<$.Result<R, E>>;
 export declare function exec<R, E, I>(...args: Parameters<Exec_Raw_Fn<R, E, I, never>>): $.Result<R, E>;

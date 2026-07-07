@@ -1,9 +1,10 @@
 import * as $ from "./core.js";
 import * as T from "./types.js";
 import * as Proxy from "./proxy.js";
-import type { I } from "./rwsea.js";
 
 class AsyncTag {}
+
+export type Async = AsyncTag;
 
 type Catcher<Err, Res> = (e: any) => undefined | $.Result<Res, Err>;
 
@@ -17,24 +18,30 @@ type AssumedI = {
 };
 type FullI<I> = {
   logs: [I] extends [never] ? AssumedI["logs"]
-    : (I extends { logs: (l: any) => void } ? I["logs"] : AssumedI["logs"]);
+    : I extends { logs: (l: any) => void } ? I["logs"]
+    : AssumedI["logs"];
   warns: [I] extends [never] ? AssumedI["warns"]
-    : (I extends { warns: (l: any) => void } ? I["warns"] : AssumedI["warns"]);
+    : I extends { warns: (l: any) => void } ? I["warns"]
+    : AssumedI["warns"];
   errors: [I] extends [never] ? AssumedI["errors"]
-    : (I extends { errors: (l: any) => void } ? I["errors"]
-      : AssumedI["errors"]);
+    : I extends { errors: (l: any) => void } ? I["errors"]
+    : AssumedI["errors"];
   reads: [I] extends [never] ? AssumedI["reads"]
-    : (I extends { reads: any } ? I["reads"] : AssumedI["reads"]);
+    : I extends { reads: any } ? I["reads"]
+    : AssumedI["reads"];
 };
 
 type BaseXYields<E, I, A> =
   | CmdT<"Pass", {}>
   | CmdT<"Get", { Proxy: Proxy.Of<FullI<I>> }>
   | CmdT<"Fail", { err: E }>
-  | (A extends AsyncTag ? CmdT<"Await", {
-      promise: Promise<unknown>;
-      catcher?: Catcher<E, unknown>;
-    }>
+  | (A extends AsyncTag ? CmdT<
+      "Await",
+      {
+        promise: Promise<unknown>;
+        catcher?: Catcher<E, unknown>;
+      }
+    >
     : never);
 
 type GottenDefault<I, K extends string, B, D = B> = I extends Record<K, B>
@@ -46,11 +53,6 @@ type DefaultHaver<I, K extends string, B> =
 
 type BaseReads = Record<string, any>;
 type EmptyReads = Record<string, undefined>;
-type GottenReads<I> = GottenDefault<I, "reads", BaseReads, EmptyReads>;
-
-type LogParam<I> = $.Param0<GottenDefault<I, "logs", (a: any) => void>>;
-type WarnParam<I> = $.Param0<GottenDefault<I, "warns", (a: any) => void>>;
-type ErrosParam<I> = $.Param0<GottenDefault<I, "errors", (a: any) => void>>;
 
 function safeGetter<K extends string, B, D = B>(
   k: K,
@@ -66,23 +68,7 @@ function safeGetter<K extends string, B, D = B>(
   };
 }
 
-const getAnyLogger = safeGetter<"logs", (a: any) => void>("logs", (a) => {
-  console.log("base::xLog", a);
-});
-
-const getAnyWarner = safeGetter<"warns", (a: any) => void>("warns", (a) => {
-  console.log("base::xWarn", a);
-});
-
-const getAnyErrorer = safeGetter<"errors", (a: any) => void>("errors", (a) => {
-  console.log("base::xError", a);
-});
-
-const getAnyReader = safeGetter<
-  "reads",
-  BaseReads,
-  EmptyReads
->("reads", {});
+const getAnyReader = safeGetter<"reads", BaseReads, EmptyReads>("reads", {});
 
 export type X<R = void, E = never, I = never, A = never> = Generator<
   BaseXYields<E, I, A>,
@@ -137,7 +123,10 @@ export function* xFail<R, E>(err: E): X<R, E> {
 }
 
 export function xOk<R, E>(r: $.Result<R, E>): X<R, E> {
-  return $.result$(r)((s) => xPure(s), (e) => xFail(e));
+  return $.result$(r)(
+    (s) => xPure(s),
+    (e) => xFail(e),
+  );
 }
 
 export function* xAsks<T, I>(f: (r: FullI<I>["reads"]) => T): X$<T, I> {
@@ -181,11 +170,8 @@ export function xReads<Rdr, R, E, I, A>(
 ): X<R, E, I, A> {
   return withInternalMapped(
     (i0) =>
-      Object.assign({}, i0, { reads: getAnyReader(i0) }, { reads }) as FullI<
-        MergeRdr<
-          Rdr,
-          I
-        >
+      Object.assign({}, i0, { reads: i0.reads }, { reads }) as FullI<
+        MergeRdr<Rdr, I>
       >,
     m,
   );
@@ -303,17 +289,26 @@ export function* xMap<Rout, Rin, E, I, A>(
   return res;
 }
 
+export function xMapErr<Eout, R, Ein, I, A>(
+  x: X<R, Ein, I, A>,
+  maps: (e: Ein) => Eout,
+): X<R, Eout, I, A> {
+  return xIntercept(x, (e) => $.Err(maps(e)));
+}
+
 export function xFirst<R, E, I, A>(
   m1: () => X<R, E, I, A>,
   ...ms: ((e: E) => X<R, E, I, A>)[]
 ): X<R, E, I, A> {
-  return xInvert($.greedy(function* () {
-    let e = yield* xInvert(m1());
-    for (const m of ms) {
-      e = yield* xInvert(m(e));
-    }
-    return e;
-  }));
+  return xInvert(
+    $.greedy(function* () {
+      let e = yield* xInvert(m1());
+      for (const m of ms) {
+        e = yield* xInvert(m(e));
+      }
+      return e;
+    }),
+  );
 }
 
 function execRaw_2<R, E, I, A>(
@@ -322,12 +317,16 @@ function execRaw_2<R, E, I, A>(
 ): (onDone: (er: $.Result<R, E>) => void) => Promise<void> {
   return async (onDone) => {
     let awaited: any;
-    const i: FullI<I> = Object.assign({}, {
-      logs: (l: any) => console.log("base:xLog", l),
-      warns: (l: any) => console.log("base:xLog", l),
-      errors: (l: any) => console.log("base:xLog", l),
-      reads: {},
-    }, _i) as FullI<I>;
+    const i: FullI<I> = Object.assign(
+      {},
+      {
+        logs: (l: any) => console.log("base:xLog", l),
+        warns: (l: any) => console.log("base:xLog", l),
+        errors: (l: any) => console.log("base:xLog", l),
+        reads: {},
+      },
+      _i,
+    ) as FullI<I>;
     const g = m();
     while (true) {
       const result = g.next({ i, a: awaited });
@@ -361,9 +360,9 @@ function execRaw_2<R, E, I, A>(
 }
 
 function execRaw_1<R, E, A>(
-  m: () => X<R, E, never, A>,
+  m: () => X<R, E, Record<string, undefined>, A>,
 ): (onDone: (er: $.Result<R, E>) => void) => Promise<void> {
-  return execRaw_2(m, {} as never);
+  return execRaw_2(m, {});
 }
 
 type Exec_Raw_Fn<R, E, I, A> =
@@ -386,7 +385,7 @@ export function exec<R, E, I>(
   ...args: Parameters<Exec_Raw_Fn<R, E, I, never>>
 ): $.Result<R, E> {
   let res: undefined | $.Result<R, E> = undefined;
-  execRaw(...args)((r) => res = r);
+  execRaw(...args)((r) => (res = r));
   if (!res) {
     throw "non-terminated rwse monad";
   }
