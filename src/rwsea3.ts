@@ -52,18 +52,18 @@ const getAnyErrorer = safeGetter<"error", (a: any) => void>("error", (a) => {
 
 const getAnyReader = safeGetter<"reads", {}>("reads", {});
 
-export type X<R = void, E = never, I = {}, A = never> = Generator<
+export type X<R = void, E = never, I = any, A = never> = Generator<
   BaseXYields<E, A>,
   R,
   { i: I; a: any }
 >;
-export type X_<E = never, I = {}, A = never> = X<never, E, I, A>;
-export type X$<R = void, I = {}, A = never> = X<R, never, I, A>;
-export type X_$<I = {}, A = never> = X<void, never, I, A>;
-export type Xa<R = void, E = never, I = {}> = X<R, E, I, AsyncTag>;
-export type Xa_<E = never, I = {}> = X<never, E, I, AsyncTag>;
-export type Xa$<R = void, I = {}> = X<R, never, I, AsyncTag>;
-export type Xa_$<I = {}> = X<void, never, I, AsyncTag>;
+export type X_<E = never, I = any, A = never> = X<never, E, I, A>;
+export type X$<R = void, I = any, A = never> = X<R, never, I, A>;
+export type X_$<I = any, A = never> = X<void, never, I, A>;
+export type Xa<R = void, E = never, I = any> = X<R, E, I, AsyncTag>;
+export type Xa_<E = never, I = any> = X<never, E, I, AsyncTag>;
+export type Xa$<R = void, I = any> = X<R, never, I, AsyncTag>;
+export type Xa_$<I = any> = X<void, never, I, AsyncTag>;
 
 export function* mapping<Rout, Rin, E, I, A>(
   vals: Rin[],
@@ -107,6 +107,30 @@ function withInternal<I>(
 export function* ask<E, I, A>(): X<GottenReads<I>, E, I, A> {
   const i = yield* getInternal();
   return getAnyReader(i);
+}
+
+export function* fail<R, E, I, A>(err: E): X<R, E, I, A> {
+  yield { Type: "BaseXYields", Variant: "Err", Data: err };
+  return undefined as any;
+}
+
+export function* pure<T, E, I, A>(t: T): X<T, E, I, A> {
+  return t;
+}
+
+export function ok<R, E, I, A>(r: $.Result<R, E>): X<R, E, I, A> {
+  return $.result$(r)(pure<R, E, I, A>, fail);
+}
+
+export function* trying<R, E, I, A>(
+  m: () => X<R, E, I, A>,
+  c: (e: unknown) => $.Result<R, E>,
+): X<R, E, I, A> {
+  try {
+    return yield* m();
+  } catch (e) {
+    return yield* ok(c(e));
+  }
 }
 
 function* f2(): X$<number, { b: number }> {

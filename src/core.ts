@@ -65,6 +65,16 @@ export function isErr<O, E>(
   return r.Variant === "Err";
 }
 
+export function maybe$<M>(m: Maybe<M>): <T>(s: (s: M) => T, n: () => T) => T {
+  return (onSome, onNone) => (isSome(m) ? onSome(m.Data) : onNone());
+}
+
+export function result$<O, E>(
+  r: Result<O, E>,
+): <T>(o: (o: O) => T, e: (e: E) => T) => T {
+  return (onOk, onErr) => (isOk(r) ? onOk(r.Data) : onErr(r.Data));
+}
+
 type SomeFn = {
   <Mt, Et>(m: Maybe<Mt>, e: Et): Result<Mt, Et>;
   <Mt>(m: Maybe<Mt>): Result<Mt, undefined>;
