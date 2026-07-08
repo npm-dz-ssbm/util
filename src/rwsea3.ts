@@ -16,6 +16,7 @@ type AssumedI = {
   errors: (e: any) => void;
   reads: {};
 };
+
 type FullI<I> = {
   logs: [I] extends [never]
     ? AssumedI["logs"]
@@ -273,7 +274,7 @@ export function xResult<R, E, I, A>(
   x: X<R, E, I, A>,
 ): X<$.Result<R, E>, never, I, A> {
   return xIntercept(
-    $.greedy(function* () {
+    $.immediate(function* () {
       const res = yield* x;
       return $.Ok(res) as $.Result<R, E>;
     }),
@@ -311,7 +312,7 @@ export function xFirst<R, E, I, A>(
   ...ms: ((e: E) => X<R, E, I, A>)[]
 ): X<R, E, I, A> {
   return xInvert(
-    $.greedy(function* () {
+    $.immediate(function* () {
       let e = yield* xInvert(m1());
       for (const m of ms) {
         e = yield* xInvert(m(e));

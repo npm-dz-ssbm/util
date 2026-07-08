@@ -146,7 +146,7 @@ export function* xIntercept(x, c) {
     }
 }
 export function xResult(x) {
-    return xIntercept($.greedy(function* () {
+    return xIntercept($.immediate(function* () {
         const res = yield* x;
         return $.Ok(res);
     }), (e) => $.Ok($.Err(e)));
@@ -168,7 +168,7 @@ export function xMapErr(x, maps) {
     return xIntercept(x, (e) => $.Err(maps(e)));
 }
 export function xFirst(m1, ...ms) {
-    return xInvert($.greedy(function* () {
+    return xInvert($.immediate(function* () {
         let e = yield* xInvert(m1());
         for (const m of ms) {
             e = yield* xInvert(m(e));

@@ -1,4 +1,7 @@
 import * as T from "./types.js";
+export function immediate(f) {
+    return f();
+}
 export function Maybe(m) {
     return T.defVariant("Maybe", {
         Some: m,
@@ -134,8 +137,5 @@ export function mapValues(obj, fn) {
         acc[k] = fn(obj[k], k, obj);
         return acc;
     }, {});
-}
-export function greedy(f) {
-    return f();
 }
 //# sourceMappingURL=core.js.map

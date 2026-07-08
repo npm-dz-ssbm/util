@@ -1,6 +1,6 @@
 export * from "zod";
 import * as Z from "zod";
-import { mapValues } from "./core.js";
+import * as $ from "./core.js";
 import * as Proxy from "./proxy.js";
 
 type StringKeys<K extends keyof any> = K extends string ? K : never;
@@ -41,22 +41,21 @@ type VariantRawVal<T extends ZV_T, DS extends ZV_DS, V extends keyof DS> = {
 };
 
 type VariantCons<T extends ZV_T, DS extends ZV_DS> = {
-  [V in keyof DS]: DS[V] extends Z.ZodUndefined ? VariantRawVal<T, DS, V>
+  [V in keyof DS]: DS[V] extends Z.ZodUndefined
+    ? VariantRawVal<T, DS, V>
     : (d: Z.infer<DS[V]>) => VariantRawVal<T, DS, V>;
 };
 
-export type VariantDef<T extends ZV_T, DS extends ZV_DS> =
-  & VariantCons<
-    T,
-    DS
-  >
-  & { zodType: ZodVariant<T, DS> };
+export type VariantDef<T extends ZV_T, DS extends ZV_DS> = VariantCons<
+  T,
+  DS
+> & { zodType: ZodVariant<T, DS> };
 
 export function defVariant<T extends ZV_T, DS extends ZV_DS>(
   t: T,
   d: DS,
 ): VariantDef<T, DS> {
-  const cons: VariantCons<T, DS> = mapValues(d, (d, Variant) => {
+  const cons: VariantCons<T, DS> = $.mapValues(d, (d, Variant) => {
     if (d.safeParse(undefined).success && !d.safeParse(null).success) {
       return {
         Data: undefined,
@@ -75,12 +74,13 @@ export function defVariant<T extends ZV_T, DS extends ZV_DS>(
   const zodType = Z.discriminatedUnion<VariantVals<T, DS>, "Variant">(
     "Variant",
     Object.values(
-      mapValues(d, (Data, Variant) =>
+      $.mapValues(d, (Data, Variant) =>
         Z.object({
           Data,
           Variant: Z.literal(Variant as string),
           Type: Z.literal(t),
-        })),
+        }),
+      ),
     ) as VariantVals<T, DS>,
   ) as ZodVariant<T, DS>;
   return Object.assign({}, cons, { zodType });
@@ -93,3 +93,11 @@ export type inferDefined<T extends BaseDefined> = Z.infer<T["zodType"]> & {
   ZodTypeProxy: Proxy.Of<T["zodType"]>;
 };
 export type zodType<T extends BaseDefinedVal> = Proxy.Unwrap<T["ZodTypeProxy"]>;
+
+export function parse<T extends Z.ZodType>(
+  z: T,
+  u: unknown,
+): $.Result<Z.infer<T>, Z.ZodError> {
+  const parsed = z.safeParse(u);
+  return parsed.success ? $.Ok(parsed.data) : $.Err(parsed.error);
+}

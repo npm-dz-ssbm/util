@@ -1,5 +1,9 @@
 import * as T from "./types.js";
 
+export function immediate<T>(f: (...args: undefined[]) => T): T {
+  return f();
+}
+
 export function Maybe<M extends T.z.ZodType>(
   m: M,
 ): T.VariantDef<"Maybe", { Some: M; None: T.ZodNull }> {
@@ -206,7 +210,3 @@ export type Param1<F extends (...a: any[]) => any> = Parameters<F>[1];
 export type Param2<F extends (...a: any[]) => any> = Parameters<F>[2];
 
 export type Merge<A, B> = Omit<A, keyof B> & B;
-
-export function greedy<R>(f: () => R): R {
-  return f();
-}

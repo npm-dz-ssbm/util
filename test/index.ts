@@ -1,49 +1,50 @@
 import test from "node:test";
 import assert from "node:assert";
 import * as $ from "../src/index.js";
-import * as X3 from "../src/rwsea3.js";
 
-function* z1(n: number): X3.X$<number, { reads: { a: number } }> {
-  const a = yield* X3.xRead("a");
+const z1: $.FnX$<[number], number, { r: { a: number } }> = $.FnX(function* (n) {
+  const { a } = yield* this.ask;
   const f = { a };
-  yield* X3.xLog(["z1!", { a: f.a }]);
+  yield* this.logInfo(["z1!", { a: f.a }]);
   return f.a * 2 + n;
-}
+});
 
-function* z2(): X3.X$<number, { reads: { a: number } }> {
-  const a = yield* X3.xRead("a");
-  yield* X3.xWarns(["x3!", { a }]);
+const z2: $.Fn0X$<number, { r: { a: number } }> = $.FnX(function* () {
+  const { a } = yield* this.ask;
+  yield* this.logWarning(["x3!", { a }]);
+  /*
   const ze = yield* $.encapsulate(z1);
   const zer = $.exec(() => ze(69));
   console.log({ zer });
+  */
   return a * 2;
-}
+});
 
-const x3: () => $.X$<number, { reads: { a: number } }> = function* () {
-  const a = yield* $.xRead("a");
+const x3: $.Fn0X$<number, { r: { a: number } }> = $.FnX(function* () {
+  const { a } = yield* this.ask;
   return a;
-};
+});
 
-function* x2(a: number): $.X<number> {
+const x2: $.FnX<[number], number> = $.FnX(function* (a) {
   // yield* x3();
   const b = 8;
-  yield* $.xLog(["x2", { a }]);
+  yield* this.logInfo(["x2", { a }]);
   return a + b;
-}
+});
 
-function* x1(): $.X$<number, { reads: { a: number } }> {
+const x1: $.Fn0X$<number, { r: { a: number } }> = $.FnX(function* () {
   const a = yield* x3();
   return yield* x2(a);
-}
+});
 
-const x0: () => $.X<number> = function* () {
-  return yield* $.xReads({ a: 5 }, x1);
-};
+const x0: $.Fn0X<number> = $.FnX(function* () {
+  return yield* this.reading({ a: 5 }, x1());
+});
 
-function* x0a(): $.Xa<number> {
+const x0a: $.Fn0Xa<number> = $.FnX(function* () {
   const res = yield* x0();
-  return yield* $.xWait(() => Promise.resolve(res));
-}
+  return yield* this.await(() => Promise.resolve(res));
+});
 
 test(async function $_tests() {
   $.exec(z2, { reads: { a: 420 } });
@@ -74,8 +75,8 @@ test(async function $_tests() {
 });
 
 function* qt() {
-  return yield* $.xIntercept(
-    $.greedy(function* (): $.X<number, number> {
+  return yield* $.xCatch(
+    $.immediate(function* (): $.X<number, number> {
       const a1 = yield* $.xOk($.some($.Some(1), 123));
       const a2 = yield* $.xOk($.some($.None<number>(), 1));
       const a3 = yield* $.xOk($.some($.Some(3), 2));

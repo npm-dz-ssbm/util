@@ -1,5 +1,6 @@
 export * from "zod";
 import * as Z from "zod";
+import * as $ from "./core.js";
 import * as Proxy from "./proxy.js";
 type StringKeys<K extends keyof any> = K extends string ? K : never;
 type SanitizedRecord<D extends Record<string, unknown>> = {
@@ -43,4 +44,5 @@ export type inferDefined<T extends BaseDefined> = Z.infer<T["zodType"]> & {
     ZodTypeProxy: Proxy.Of<T["zodType"]>;
 };
 export type zodType<T extends BaseDefinedVal> = Proxy.Unwrap<T["ZodTypeProxy"]>;
+export declare function parse<T extends Z.ZodType>(z: T, u: unknown): $.Result<Z.infer<T>, Z.ZodError>;
 //# sourceMappingURL=types.d.ts.map
