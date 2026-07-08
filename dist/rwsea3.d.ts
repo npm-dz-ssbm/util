@@ -40,11 +40,11 @@ export type X<R = void, E = never, I = never, A = never> = Generator<BaseXYields
     i: FullI<I>;
     a: any;
 }>;
-export type X_<E = never, I = never, A = never> = X<never, E, I, A>;
+export type X_<E = never, I = never, A = never> = X<void, E, I, A>;
 export type X$<R = void, I = never, A = never> = X<R, never, I, A>;
 export type X_$<I = never, A = never> = X<void, never, I, A>;
 export type Xa<R = void, E = never, I = never> = X<R, E, I, AsyncTag>;
-export type Xa_<E = never, I = never> = X<never, E, I, AsyncTag>;
+export type Xa_<E = never, I = never> = X<void, E, I, AsyncTag>;
 export type Xa$<R = void, I = never> = X<R, never, I, AsyncTag>;
 export type Xa_$<I = never> = X<void, never, I, AsyncTag>;
 export declare function xPure<T>(t: T): X<T>;
@@ -78,5 +78,64 @@ type Exec_Raw_Fn<R, E, I, A> = typeof execRaw_1<R, E, A> | typeof execRaw_2<R, E
 export declare function execAsync<R, E, I>(...args: Parameters<Exec_Raw_Fn<R, E, I, AsyncTag>>): Promise<$.Result<R, E>>;
 export declare function exec<R, E, I>(...args: Parameters<Exec_Raw_Fn<R, E, I, never>>): $.Result<R, E>;
 export declare function xMaybe<Mt>(mk: (b: <It>(r: $.Maybe<It>) => X<It, undefined>) => X<Mt, undefined>): $.Maybe<Mt>;
+export declare function encapsulate<R, E, I, A, Args extends any[] = []>(m: (...args: Args) => X<R, E, I, A>): X$<(...args: Args) => X<R, E, Record<string, undefined>, A>, I>;
+declare abstract class Base_MX<Args extends any[] = [], R = void, E = never, I = never, A = never> {
+    fail: typeof xFail<R, E>;
+    args: Args;
+    proxies: {
+        Args: Proxy.Of<Args>;
+        R: Proxy.Of<R>;
+        E: Proxy.Of<E>;
+        I: Proxy.Of<I>;
+        A: Proxy.Of<A>;
+        MX: Proxy.Of<Base_MX<Args, R, E, I, A>>;
+        X: Proxy.Of<X<R, E, I, A>>;
+    };
+    constructor(...args: Args);
+    get ask(): X$<FullI<I>["reads"], I>;
+    $<Args extends any[], R, E, I, A>(MXConstructor: new (...args: Args) => MX<Args, R, E, I, A>, ...args: Args): X<R, E, I, A>;
+    abstract do(): X<R, E, I, A>;
+}
+export declare abstract class MX<Args extends any[] = [], R = void, E = never, I = never, A = never> extends Base_MX<Args, R, E, I, A> {
+}
+export declare abstract class MX_<Args extends any[] = [], E = never, I = never, A = never> extends Base_MX<Args, void, E, I, A> {
+}
+export declare abstract class MX$<Args extends any[] = [], R = void, I = never, A = never> extends Base_MX<Args, R, never, I, A> {
+}
+export declare abstract class MX_$<Args extends any[] = [], I = never, A = never> extends Base_MX<Args, void, never, I, A> {
+}
+export declare abstract class MXa<Args extends any[] = [], R = void, E = never, I = never> extends Base_MX<Args, R, E, I, AsyncTag> {
+}
+export declare abstract class MXa_<Args extends any[] = [], E = never, I = never> extends Base_MX<Args, void, E, I, AsyncTag> {
+}
+export declare abstract class MXa$<Args extends any[] = [], R = void, I = never> extends Base_MX<Args, R, never, I, AsyncTag> {
+}
+export declare abstract class MXa_$<Args extends any[] = [], I = never> extends Base_MX<Args, void, never, I, AsyncTag> {
+}
+export declare abstract class MX0<Args extends any[] = [], R = void, E = never, I = never, A = never> extends Base_MX<Args, R, E, I, A> {
+}
+export declare abstract class MX_0<E = never, I = never, A = never> extends Base_MX<[
+], void, E, I, A> {
+}
+export declare abstract class MX$0<R = void, I = never, A = never> extends Base_MX<[
+], R, never, I, A> {
+}
+export declare abstract class MX_$0<I = never, A = never> extends Base_MX<[
+], void, never, I, A> {
+}
+export declare abstract class MXa0<R = void, E = never, I = never> extends Base_MX<[
+], R, E, I, AsyncTag> {
+}
+export declare abstract class MXa_0<E = never, I = never> extends Base_MX<[
+], void, E, I, AsyncTag> {
+}
+export declare abstract class MXa$0<R = void, I = never> extends Base_MX<[
+], R, never, I, AsyncTag> {
+}
+export declare abstract class MXa_$0<I = never> extends Base_MX<[
+], void, never, I, AsyncTag> {
+}
+export declare function mX<Args extends any[], R, E, I, A, MXI extends Base_MX<Args, R, E, I, A>>(MXConstructor: new (...args: Args) => MXI): (...args: Args) => X<R, E, I, A>;
+export declare function xDo<Args extends any[], R, E, I, A>(MXConstructor: new (...args: Args) => MX<Args, R, E, I, A>, ...args: Args): X<R, E, I, A>;
 export {};
 //# sourceMappingURL=rwsea3.d.ts.map

@@ -122,18 +122,20 @@ export function* xIntercept(x, c) {
                 const awaitYieldVal = {
                     cmd: "Await",
                     promise: v.promise,
-                    catcher: !promiseCatcher ? undefined : (e) => {
-                        const i = promiseCatcher(e);
-                        if (!i) {
-                            return undefined;
-                        }
-                        else if (i.Variant === "Ok") {
-                            return $.Ok(i.Data);
-                        }
-                        else {
-                            return c(i.Data);
-                        }
-                    },
+                    catcher: !promiseCatcher
+                        ? undefined
+                        : (e) => {
+                            const i = promiseCatcher(e);
+                            if (!i) {
+                                return undefined;
+                            }
+                            else if (i.Variant === "Ok") {
+                                return $.Ok(i.Data);
+                            }
+                            else {
+                                return c(i.Data);
+                            }
+                        },
                 };
                 yieldNext = yield awaitYieldVal;
             }
@@ -242,5 +244,71 @@ export function xMaybe(mk) {
         return $.Some(res.Data);
     }
     return $.None();
+}
+export function* encapsulate(m) {
+    const internal = yield* getInternal();
+    return function (...args) {
+        return withInternalMapped(() => internal, () => m(...args));
+    };
+}
+class Base_MX {
+    fail = xFail;
+    args;
+    proxies = {
+        Args: Proxy.Of(),
+        R: Proxy.Of(),
+        E: Proxy.Of(),
+        I: Proxy.Of(),
+        A: Proxy.Of(),
+        MX: Proxy.Of(),
+        X: Proxy.Of(),
+    };
+    constructor(...args) {
+        this.args = args;
+    }
+    get ask() {
+        return xAsk();
+    }
+    $(MXConstructor, ...args) {
+        return xDo(MXConstructor, ...args);
+    }
+}
+export class MX extends Base_MX {
+}
+export class MX_ extends Base_MX {
+}
+export class MX$ extends Base_MX {
+}
+export class MX_$ extends Base_MX {
+}
+export class MXa extends Base_MX {
+}
+export class MXa_ extends Base_MX {
+}
+export class MXa$ extends Base_MX {
+}
+export class MXa_$ extends Base_MX {
+}
+export class MX0 extends Base_MX {
+}
+export class MX_0 extends Base_MX {
+}
+export class MX$0 extends Base_MX {
+}
+export class MX_$0 extends Base_MX {
+}
+export class MXa0 extends Base_MX {
+}
+export class MXa_0 extends Base_MX {
+}
+export class MXa$0 extends Base_MX {
+}
+export class MXa_$0 extends Base_MX {
+}
+export function mX(MXConstructor) {
+    return (...args) => new MXConstructor(...args).do();
+}
+export function xDo(MXConstructor, ...args) {
+    return mX(MXConstructor)(...args);
 }
 //# sourceMappingURL=rwsea3.js.map

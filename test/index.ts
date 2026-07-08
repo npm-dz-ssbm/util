@@ -3,19 +3,19 @@ import assert from "node:assert";
 import * as $ from "../src/index.js";
 import * as X3 from "../src/rwsea3.js";
 
-function* z1(): X3.X$<number, { reads: { a: number; b: string } }> {
-  const f = { a: 27 };
-  yield* X3.xLog(["x3!", { a: f.a }]);
-  yield* X3.xErrors(["x3!", { a: f.a }]);
-  yield* X3.xWarns(["x3!", { a: f.a }]);
-  return f.a * 2;
+function* z1(n: number): X3.X$<number, { reads: { a: number } }> {
+  const a = yield* X3.xRead("a");
+  const f = { a };
+  yield* X3.xLog(["z1!", { a: f.a }]);
+  return f.a * 2 + n;
 }
 
 function* z2(): X3.X$<number, { reads: { a: number } }> {
   const a = yield* X3.xRead("a");
-  yield* X3.xLog(["x3!", { a }]);
-  yield* X3.xErrors(["x3!", { a }]);
   yield* X3.xWarns(["x3!", { a }]);
+  const ze = yield* $.encapsulate(z1);
+  const zer = $.exec(() => ze(69));
+  console.log({ zer });
   return a * 2;
 }
 
@@ -46,6 +46,7 @@ function* x0a(): $.Xa<number> {
 }
 
 test(async function $_tests() {
+  $.exec(z2, { reads: { a: 420 } });
   assert.deepStrictEqual($.exec(x0), $.Ok(13));
   assert.deepStrictEqual(await $.execAsync(x0a), $.Ok(13));
   assert.deepStrictEqual($.quot(2, 3), 0);

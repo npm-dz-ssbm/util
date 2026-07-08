@@ -17,36 +17,44 @@ type AssumedI = {
   reads: {};
 };
 type FullI<I> = {
-  logs: [I] extends [never] ? AssumedI["logs"]
-    : I extends { logs: (l: any) => void } ? I["logs"]
-    : AssumedI["logs"];
-  warns: [I] extends [never] ? AssumedI["warns"]
-    : I extends { warns: (l: any) => void } ? I["warns"]
-    : AssumedI["warns"];
-  errors: [I] extends [never] ? AssumedI["errors"]
-    : I extends { errors: (l: any) => void } ? I["errors"]
-    : AssumedI["errors"];
-  reads: [I] extends [never] ? AssumedI["reads"]
-    : I extends { reads: any } ? I["reads"]
-    : AssumedI["reads"];
+  logs: [I] extends [never]
+    ? AssumedI["logs"]
+    : I extends { logs: (l: any) => void }
+      ? I["logs"]
+      : AssumedI["logs"];
+  warns: [I] extends [never]
+    ? AssumedI["warns"]
+    : I extends { warns: (l: any) => void }
+      ? I["warns"]
+      : AssumedI["warns"];
+  errors: [I] extends [never]
+    ? AssumedI["errors"]
+    : I extends { errors: (l: any) => void }
+      ? I["errors"]
+      : AssumedI["errors"];
+  reads: [I] extends [never]
+    ? AssumedI["reads"]
+    : I extends { reads: any }
+      ? I["reads"]
+      : AssumedI["reads"];
 };
 
 type BaseXYields<E, I, A> =
   | CmdT<"Pass", {}>
   | CmdT<"Get", { Proxy: Proxy.Of<FullI<I>> }>
   | CmdT<"Fail", { err: E }>
-  | (A extends AsyncTag ? CmdT<
-      "Await",
-      {
-        promise: Promise<unknown>;
-        catcher?: Catcher<E, unknown>;
-      }
-    >
-    : never);
+  | (A extends AsyncTag
+      ? CmdT<
+          "Await",
+          {
+            promise: Promise<unknown>;
+            catcher?: Catcher<E, unknown>;
+          }
+        >
+      : never);
 
-type GottenDefault<I, K extends string, B, D = B> = I extends Record<K, B>
-  ? ([I[K]] extends [never] ? D : I[K])
-  : D;
+type GottenDefault<I, K extends string, B, D = B> =
+  I extends Record<K, B> ? ([I[K]] extends [never] ? D : I[K]) : D;
 type DefaultHaver<I, K extends string, B> =
   | undefined
   | (I extends Record<K, B> ? I : Record<K, undefined>);
@@ -75,11 +83,11 @@ export type X<R = void, E = never, I = never, A = never> = Generator<
   R,
   { i: FullI<I>; a: any }
 >;
-export type X_<E = never, I = never, A = never> = X<never, E, I, A>;
+export type X_<E = never, I = never, A = never> = X<void, E, I, A>;
 export type X$<R = void, I = never, A = never> = X<R, never, I, A>;
 export type X_$<I = never, A = never> = X<void, never, I, A>;
 export type Xa<R = void, E = never, I = never> = X<R, E, I, AsyncTag>;
-export type Xa_<E = never, I = never> = X<never, E, I, AsyncTag>;
+export type Xa_<E = never, I = never> = X<void, E, I, AsyncTag>;
 export type Xa$<R = void, I = never> = X<R, never, I, AsyncTag>;
 export type Xa_$<I = never> = X<void, never, I, AsyncTag>;
 
@@ -240,16 +248,18 @@ export function* xIntercept<R, E, I, A, Eout>(
         const awaitYieldVal = {
           cmd: "Await",
           promise: v.promise,
-          catcher: !promiseCatcher ? undefined : (e) => {
-            const i = promiseCatcher(e);
-            if (!i) {
-              return undefined;
-            } else if (i.Variant === "Ok") {
-              return $.Ok(i.Data);
-            } else {
-              return c(i.Data);
-            }
-          },
+          catcher: !promiseCatcher
+            ? undefined
+            : (e) => {
+                const i = promiseCatcher(e);
+                if (!i) {
+                  return undefined;
+                } else if (i.Variant === "Ok") {
+                  return $.Ok(i.Data);
+                } else {
+                  return c(i.Data);
+                }
+              },
         } as BaseXYields<Eout, I, A>;
         yieldNext = yield awaitYieldVal;
       } else {
@@ -400,4 +410,182 @@ export function xMaybe<Mt>(
     return $.Some(res.Data);
   }
   return $.None();
+}
+
+export function* encapsulate<R, E, I, A, Args extends any[] = []>(
+  m: (...args: Args) => X<R, E, I, A>,
+): X$<(...args: Args) => X<R, E, Record<string, undefined>, A>, I> {
+  const internal = yield* getInternal();
+  return function (...args: Args) {
+    return withInternalMapped(
+      () => internal,
+      () => m(...args),
+    );
+  };
+}
+
+abstract class Base_MX<
+  Args extends any[] = [],
+  R = void,
+  E = never,
+  I = never,
+  A = never,
+> {
+  fail: typeof xFail<R, E> = xFail;
+  args: Args;
+  proxies: {
+    Args: Proxy.Of<Args>;
+    R: Proxy.Of<R>;
+    E: Proxy.Of<E>;
+    I: Proxy.Of<I>;
+    A: Proxy.Of<A>;
+    MX: Proxy.Of<Base_MX<Args, R, E, I, A>>;
+    X: Proxy.Of<X<R, E, I, A>>;
+  } = {
+    Args: Proxy.Of<Args>(),
+    R: Proxy.Of<R>(),
+    E: Proxy.Of<E>(),
+    I: Proxy.Of<I>(),
+    A: Proxy.Of<A>(),
+    MX: Proxy.Of<Base_MX<Args, R, E, I, A>>(),
+    X: Proxy.Of<X<R, E, I, A>>(),
+  };
+  constructor(...args: Args) {
+    this.args = args;
+  }
+  get ask(): X$<FullI<I>["reads"], I> {
+    return xAsk();
+  }
+  $<Args extends any[], R, E, I, A>(
+    MXConstructor: new (...args: Args) => MX<Args, R, E, I, A>,
+    ...args: Args
+  ): X<R, E, I, A> {
+    return xDo(MXConstructor, ...args);
+  }
+  abstract do(): X<R, E, I, A>;
+}
+
+export abstract class MX<
+  Args extends any[] = [],
+  R = void,
+  E = never,
+  I = never,
+  A = never,
+> extends Base_MX<Args, R, E, I, A> {}
+export abstract class MX_<
+  Args extends any[] = [],
+  E = never,
+  I = never,
+  A = never,
+> extends Base_MX<Args, void, E, I, A> {}
+export abstract class MX$<
+  Args extends any[] = [],
+  R = void,
+  I = never,
+  A = never,
+> extends Base_MX<Args, R, never, I, A> {}
+export abstract class MX_$<
+  Args extends any[] = [],
+  I = never,
+  A = never,
+> extends Base_MX<Args, void, never, I, A> {}
+
+export abstract class MXa<
+  Args extends any[] = [],
+  R = void,
+  E = never,
+  I = never,
+> extends Base_MX<Args, R, E, I, AsyncTag> {}
+export abstract class MXa_<
+  Args extends any[] = [],
+  E = never,
+  I = never,
+> extends Base_MX<Args, void, E, I, AsyncTag> {}
+export abstract class MXa$<
+  Args extends any[] = [],
+  R = void,
+  I = never,
+> extends Base_MX<Args, R, never, I, AsyncTag> {}
+export abstract class MXa_$<Args extends any[] = [], I = never> extends Base_MX<
+  Args,
+  void,
+  never,
+  I,
+  AsyncTag
+> {}
+
+export abstract class MX0<
+  Args extends any[] = [],
+  R = void,
+  E = never,
+  I = never,
+  A = never,
+> extends Base_MX<Args, R, E, I, A> {}
+export abstract class MX_0<E = never, I = never, A = never> extends Base_MX<
+  [],
+  void,
+  E,
+  I,
+  A
+> {}
+export abstract class MX$0<R = void, I = never, A = never> extends Base_MX<
+  [],
+  R,
+  never,
+  I,
+  A
+> {}
+export abstract class MX_$0<I = never, A = never> extends Base_MX<
+  [],
+  void,
+  never,
+  I,
+  A
+> {}
+
+export abstract class MXa0<R = void, E = never, I = never> extends Base_MX<
+  [],
+  R,
+  E,
+  I,
+  AsyncTag
+> {}
+export abstract class MXa_0<E = never, I = never> extends Base_MX<
+  [],
+  void,
+  E,
+  I,
+  AsyncTag
+> {}
+export abstract class MXa$0<R = void, I = never> extends Base_MX<
+  [],
+  R,
+  never,
+  I,
+  AsyncTag
+> {}
+export abstract class MXa_$0<I = never> extends Base_MX<
+  [],
+  void,
+  never,
+  I,
+  AsyncTag
+> {}
+
+export function mX<
+  Args extends any[],
+  R,
+  E,
+  I,
+  A,
+  MXI extends Base_MX<Args, R, E, I, A>,
+>(MXConstructor: new (...args: Args) => MXI): (...args: Args) => X<R, E, I, A> {
+  return (...args) => new MXConstructor(...args).do();
+}
+
+export function xDo<Args extends any[], R, E, I, A>(
+  MXConstructor: new (...args: Args) => MX<Args, R, E, I, A>,
+  ...args: Args
+): X<R, E, I, A> {
+  return mX<Args, R, E, I, A, MX<Args, R, E, I, A>>(MXConstructor)(...args);
 }
