@@ -348,6 +348,18 @@ type MergeR<D, I> = $.Merge<
   }
 >;
 
+export function x$$<Args extends any[], R, E, I, A>(
+  Cons: new () => $X<Args, R, E, I, A>,
+): (...args: Args) => X<R, E, I, A> {
+  return (...args) => new Cons().$(...args);
+}
+
+export function xUse<I, A, T extends ClassX<I, A>>(
+  Cons: new () => T,
+): Omit<T, keyof ClassX<I, A>> {
+  return new Cons();
+}
+
 export class ClassX<I = never, A = never> {
   proxies: {
     I: Proxy.Of<I>;
@@ -441,11 +453,9 @@ export class ClassX<I = never, A = never> {
   catch: <R, E, Eout>(
     ...args: Parameters<typeof xCatch<R, E, I, A, Eout>>
   ) => ReturnType<typeof xCatch<R, E, I, A, Eout>> = xCatch;
-  $$<Args extends any[], R, E>(
-    Cons: new () => $X<Args, R, E, I, A>,
-  ): (...args: Args) => X<R, E, I, A> {
-    return (...args) => new Cons().$(...args);
-  }
+  $$: <Args extends any[], R, E>(
+    ...args: Parameters<typeof x$$<Args, R, E, I, A>>
+  ) => ReturnType<typeof x$$<Args, R, E, I, A>> = x$$;
   use<T extends ClassX<I, A>>(Cons: new () => T): Omit<T, keyof ClassX<I, A>> {
     return new Cons();
   }
@@ -464,29 +474,6 @@ export function FnX<Args extends any[], R, E, I, A>(
 ): FnX<Args, R, E, I, A> {
   return (...args) => f.bind(new ClassX<I, A>())(...args);
 }
-
-const t: Fn0XOk<number, { r: { a: number } }> = FnX(function* (): ReturnType<
-  typeof t
-> {
-  return 2;
-});
-
-const t2: FnXOk<[number], number, { r: { a: number } }> = FnX(function* (a) {
-  const helper = this.fn(function* (b: number) {
-    // const [b2] = this.args;
-    return yield* this.pure(b * 2);
-  });
-  const mult = yield* helper(2);
-  const r = yield* this.ask;
-  return mult * a * r.a;
-});
-
-const ts: Fn0Xa<
-  string,
-  $.Maybe<{ a: number }> | string | $.Result<number, string>
-> = FnX(function* () {
-  return yield* xAwait(() => Promise.resolve("Hello"));
-});
 
 export type FnX<
   Args extends any[],

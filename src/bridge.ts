@@ -91,7 +91,7 @@ export function define<S extends GenericSpecBase>(spec: S): SpecDef<S> {
           X.xOk(T.parse(paramSpec, apiParamUnparsed)),
           mapZodErr,
         );
-        return yield* handle(apiParam);
+        return yield* handle.bind(methods)(apiParam);
       };
     },
   };
