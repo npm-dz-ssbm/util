@@ -1,4 +1,4 @@
-import * as T from "./types.js";
+import * as T from "./T.js";
 
 export type Nilable<T> = undefined | null | T;
 

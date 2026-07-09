@@ -1,4 +1,4 @@
-import * as T from "./types.js";
+import * as T from "./T.js";
 
 export function immediate<T>(f: (...args: undefined[]) => T): T {
   return f();
@@ -210,3 +210,116 @@ export type Param1<F extends (...a: any[]) => any> = Parameters<F>[1];
 export type Param2<F extends (...a: any[]) => any> = Parameters<F>[2];
 
 export type Merge<A, B> = Omit<A, keyof B> & B;
+
+export type FnN<Args extends any[], T> = (...args: Args) => T;
+export type Fn0<T> = FnN<[], T>;
+export type Fn1<A1, T> = FnN<[A1], T>;
+export type Fn2<A1, A2, T> = FnN<[A1, A2], T>;
+export type Fn3<A1, A2, A3, T> = FnN<[A1, A2, A3], T>;
+export type Fn4<A1, A2, A3, A4, T> = FnN<[A1, A2, A3, A4], T>;
+export type Fn5<A1, A2, A3, A4, A5, T> = FnN<[A1, A2, A3, A4, A5], T>;
+export type Fn6<A1, A2, A3, A4, A5, A6, T> = FnN<[A1, A2, A3, A4, A5, A6], T>;
+export type Fn7<A1, A2, A3, A4, A5, A6, A7, T> = FnN<
+  [A1, A2, A3, A4, A5, A6, A7],
+  T
+>;
+export type Fn8<A1, A2, A3, A4, A5, A6, A7, A8, T> = FnN<
+  [A1, A2, A3, A4, A5, A6, A7, A8],
+  T
+>;
+export type Fn9<A1, A2, A3, A4, A5, A6, A7, A8, A9, T> = FnN<
+  [A1, A2, A3, A4, A5, A6, A7, A8, A9],
+  T
+>;
+export type Fn10<A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, T> = FnN<
+  [A1, A2, A3, A4, A5, A6, A7, A8, A9, A10],
+  T
+>;
+
+export function pipe<A>(value: A): A;
+export function pipe<A, B>(value: A, fn1: (arg: A) => B): B;
+export function pipe<A, B, C>(
+  value: A,
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+): C;
+export function pipe<A, B, C, D>(
+  value: A,
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+): D;
+export function pipe<A, B, C, D, E>(
+  value: A,
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+): E;
+export function pipe<A, B, C, D, E, F>(
+  value: A,
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+): F;
+export function pipe<A, B, C, D, E, F, G>(
+  value: A,
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+  fn6: (arg: F) => G,
+): F;
+export function pipe<A, B, C, D, E, F, G, H>(
+  value: A,
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+  fn6: (arg: F) => G,
+  fn7: (arg: G) => H,
+): F;
+export function pipe<A, B, C, D, E, F, G, H, I>(
+  value: A,
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+  fn6: (arg: F) => G,
+  fn7: (arg: G) => H,
+  fn8: (arg: H) => I,
+): F;
+export function pipe<A, B, C, D, E, F, G, H, I, J>(
+  value: A,
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+  fn6: (arg: F) => G,
+  fn7: (arg: G) => H,
+  fn8: (arg: H) => I,
+  fn9: (arg: I) => J,
+): J;
+export function pipe<A, B, C, D, E, F, G, H, I, J, K>(
+  value: A,
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+  fn6: (arg: F) => G,
+  fn7: (arg: G) => H,
+  fn8: (arg: H) => I,
+  fn9: (arg: I) => J,
+  fn10: (arg: J) => K,
+): K;
+
+export function pipe(value: any, ...fns: Function[]): any {
+  return fns.reduce((acc, fn) => fn(acc), value);
+}

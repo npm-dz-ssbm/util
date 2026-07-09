@@ -2,14 +2,16 @@ import test from "node:test";
 import assert from "node:assert";
 import * as $ from "../src/index.js";
 
-const z1: $.FnX$<[number], number, { r: { a: number } }> = $.FnX(function* (n) {
-  const { a } = yield* this.ask;
-  const f = { a };
-  yield* this.logInfo(["z1!", { a: f.a }]);
-  return f.a * 2 + n;
-});
+const z1: $.FnXOk<[number], number, { r: { a: number } }> = $.FnX(
+  function* (n) {
+    const { a } = yield* this.ask;
+    const f = { a };
+    yield* this.logInfo(["z1!", { a: f.a }]);
+    return f.a * 2 + n;
+  },
+);
 
-const z2: $.Fn0X$<number, { r: { a: number } }> = $.FnX(function* () {
+const z2: $.Fn0XOk<number, { r: { a: number } }> = $.FnX(function* () {
   const { a } = yield* this.ask;
   yield* this.logWarning(["x3!", { a }]);
   /*
@@ -20,10 +22,12 @@ const z2: $.Fn0X$<number, { r: { a: number } }> = $.FnX(function* () {
   return a * 2;
 });
 
-const x3: $.Fn0X$<number, { r: { a: number } }> = $.FnX(function* () {
-  const { a } = yield* this.ask;
-  return a;
-});
+class X3 extends $.$0XOk<number, { r: { a: number } }> {
+  *$() {
+    const { a } = yield* this.ask;
+    return a;
+  }
+}
 
 const x2: $.FnX<[number], number> = $.FnX(function* (a) {
   // yield* x3();
@@ -32,8 +36,10 @@ const x2: $.FnX<[number], number> = $.FnX(function* (a) {
   return a + b;
 });
 
-const x1: $.Fn0X$<number, { r: { a: number } }> = $.FnX(function* () {
-  const a = yield* x3();
+const x1: $.Fn0XOk<number, { r: { a: number } }> = $.FnX(function* () {
+  const a = yield* this.$$(X3)();
+  const b = yield* this.use(X3).$();
+  yield* this.logInfo([{ a, b }, a == b]);
   return yield* x2(a);
 });
 

@@ -1,5 +1,5 @@
 import * as $ from "./core.js";
-import * as T from "./types.js";
+import * as T from "./T.js";
 import * as Proxy from "./proxy.js";
 
 class AsyncTag {}
@@ -189,16 +189,25 @@ export function* xTry<R, E, I, A>(
   }
 }
 
-export function* xAwait<Pt, Et>(
+function* base_xAwait<Pt, Et>(
   mkPromise: () => Promise<Pt>,
-  catcher: CatchFn<Pt, Et> = () => undefined,
+  catcher?: CatchFn<Pt, Et> | undefined,
 ): Xa<Pt, Et> {
   const { a } = yield {
     cmd: "Await",
     p: mkPromise(),
-    c: catcher,
+    ...(catcher ? { c: catcher } : {}),
   };
   return a;
+}
+
+export function xAwait<Pt, Et>(
+  mkPromise: () => Promise<Pt>,
+  catcher: CatchFn<Pt, Et>,
+): Xa<Pt, Et>;
+export function xAwait<Pt, Et>(mkPromise: () => Promise<Pt>): Xa<Pt>;
+export function xAwait(...args: [any] | [any, any]): any {
+  return base_xAwait(args[0], args[1]);
 }
 
 export function* xThen<R1, R2, E, I, A>(
@@ -339,133 +348,130 @@ type MergeR<D, I> = $.Merge<
   }
 >;
 
-type XThis<I = never, A = never> = {
+export class ClassX<I = never, A = never> {
   proxies: {
     I: Proxy.Of<I>;
     A: Proxy.Of<A>;
-  };
-  fn<Args extends any[] = [], R = void, E = never>(
-    f: (this: XThis<I, A>, ...args: Args) => X<R, E, I, A>,
-  ): FnX<Args, R, E, I, A>;
-  ask: X$<TrueI<I>["reads"], I>;
-  asks<R>(f: (a: TrueI<I>["reads"]) => R): X$<R, I>;
-  reading<D, R, E>(d: D, x: X<R, E, MergeR<D, I>, A>): X<R, E, I, A>;
-  logInfo(a: $.Param0<TrueI<I>["logInfo"]>): X_$<I>;
-  logWarning(a: $.Param0<TrueI<I>["logWarning"]>): X_$<I>;
-  logError(a: $.Param0<TrueI<I>["logError"]>): X_$<I>;
-  pure: typeof xPure;
-  fail: typeof xFail;
-  ok: typeof xOk;
-  await: A extends AsyncTag ? typeof xAwait : never;
-  first<R, E>(
-    ...args: Parameters<typeof xFirst<R, E, I, A>>
-  ): ReturnType<typeof xFirst<R, E, I, A>>;
-  result<R, E>(
-    ...args: Parameters<typeof xResult<R, E, I, A>>
-  ): ReturnType<typeof xResult<R, E, I, A>>;
-  invert<R, E>(
-    ...args: Parameters<typeof xInvert<R, E, I, A>>
-  ): ReturnType<typeof xInvert<R, E, I, A>>;
-  map<Rout, Rin, E>(
-    ...args: Parameters<typeof xMap<Rout, Rin, E, I, A>>
-  ): ReturnType<typeof xMap<Rout, Rin, E, I, A>>;
-  mapErr<Eout, R, Ein>(
-    ...args: Parameters<typeof xMapErr<Eout, R, Ein, I, A>>
-  ): ReturnType<typeof xMapErr<Eout, R, Ein, I, A>>;
-  try<R, E>(
-    ...args: Parameters<typeof xTry<R, E, I, A>>
-  ): ReturnType<typeof xTry<R, E, I, A>>;
-  then<R1, R2, E>(
-    ...args: Parameters<typeof xThen<R1, R2, E, I, A>>
-  ): ReturnType<typeof xThen<R1, R2, E, I, A>>;
-  catch<R, E, Eout>(
-    ...args: Parameters<typeof xCatch<R, E, I, A, Eout>>
-  ): ReturnType<typeof xCatch<R, E, I, A, Eout>>;
-};
-
-export function FnX<Args extends any[], R, E, I, A>(
-  f: (this: XThis<I, A>, ...args: Args) => X<R, E, I, A>,
-): FnX<Args, R, E, I, A> {
-  const proxies = {
+  } = {
     I: Proxy.Of<I>(),
     A: Proxy.Of<A>(),
   };
-  function* getYield(): X$<{ a: any; i: TrueI<I> }, I> {
+  fn: <Args extends any[] = [], R = void, E = never>(
+    f: (this: ClassX<I, A>, ...args: Args) => X<R, E, I, A>,
+  ) => FnX<Args, R, E, I, A> = FnX;
+  *#getYield(): X$<{ a: any; i: TrueI<I> }, I> {
     return yield { cmd: "Pass" };
   }
-  function* getI(): X$<TrueI<I>, I> {
-    const yieldVal = yield* getYield();
+  *#getI(): X$<TrueI<I>, I> {
+    const yieldVal = yield* this.#getYield();
     return yieldVal.i;
   }
-  function* ask(): X$<TrueI<I>["reads"], I> {
-    const i = yield* getI();
+  *#ask(): X$<TrueI<I>["reads"], I> {
+    const i = yield* this.#getI();
     return i.reads;
   }
-  const xThis: XThis<I, A> = {
-    mapErr: xMapErr,
-    first: xFirst,
-    then: xThen,
-    catch: xCatch,
-    result: xResult,
-    invert: xInvert,
-    map: xMap,
-    proxies,
-    fn: FnX,
-    get ask() {
-      return ask();
-    },
-    *asks(f) {
-      const a = yield* xThis.ask;
-      return f(a);
-    },
-    *reading<D, R, E>(d: D, x: X<R, E, MergeR<D, I>, A>) {
-      const currI = yield* getI();
-      const newReads = Object.assign({}, currI.reads, d);
-      const newI: TrueI<MergeR<D, I>> = Object.assign({}, currI, {
-        reads: newReads,
-      }) as TrueI<MergeR<D, I>>;
-      let yieldNext = yield* getYield();
-      const it = x;
-      while (true) {
-        const result = it.next({
-          a: yieldNext.a,
-          i: newI,
-        });
-        if (result.done) {
-          return result.value;
-        } else {
-          yieldNext = (yield result.value as any) as any;
-        }
+
+  get ask(): X$<TrueI<I>["reads"], I> {
+    return this.#ask();
+  }
+
+  *asks<R>(f: (a: TrueI<I>["reads"]) => R): X$<R, I> {
+    const a = yield* this.#ask();
+    return f(a);
+  }
+
+  *reading<D, R, E>(d: D, x: X<R, E, MergeR<D, I>, A>): X<R, E, I, A> {
+    const currI = yield* this.#getI();
+    const newReads = Object.assign({}, currI.reads, d);
+    const newI: TrueI<MergeR<D, I>> = Object.assign({}, currI, {
+      reads: newReads,
+    }) as TrueI<MergeR<D, I>>;
+    let yieldNext = yield* this.#getYield();
+    const it = x;
+    while (true) {
+      const result = it.next({
+        a: yieldNext.a,
+        i: newI,
+      });
+      if (result.done) {
+        return result.value;
+      } else {
+        yieldNext = (yield result.value as any) as any;
       }
-    },
-    *logInfo(a) {
-      const i = yield* getI();
-      i.logInfo(a);
-    },
-    *logWarning(a) {
-      const i = yield* getI();
-      i.logWarning(a);
-    },
-    *logError(a) {
-      const i = yield* getI();
-      i.logError(a);
-    },
-    await: xAwait as A extends AsyncTag ? typeof xAwait : never,
-    pure: xPure,
-    ok: xOk,
-    fail: xFail,
-    try: xTry,
-  };
-  return (...args) => f.bind(xThis)(...args);
+    }
+  }
+  *logInfo(a: $.Param0<TrueI<I>["logInfo"]>): X_$<I> {
+    const i = yield* this.#getI();
+    i.logInfo(a);
+  }
+  *logWarning(a: $.Param0<TrueI<I>["logWarning"]>): X_$<I> {
+    const i = yield* this.#getI();
+    i.logWarning(a);
+  }
+  *logError(a: $.Param0<TrueI<I>["logError"]>): X_$<I> {
+    const i = yield* this.#getI();
+    i.logError(a);
+  }
+  pure: typeof xPure = xPure;
+  fail: typeof xFail = xFail;
+  ok: typeof xOk = xOk;
+  await: A extends AsyncTag ? typeof xAwait : never =
+    xAwait as A extends AsyncTag ? typeof xAwait : never;
+  first: <R, E>(
+    ...args: Parameters<typeof xFirst<R, E, I, A>>
+  ) => ReturnType<typeof xFirst<R, E, I, A>> = xFirst;
+  result: <R, E>(
+    ...args: Parameters<typeof xResult<R, E, I, A>>
+  ) => ReturnType<typeof xResult<R, E, I, A>> = xResult;
+  invert: <R, E>(
+    ...args: Parameters<typeof xInvert<R, E, I, A>>
+  ) => ReturnType<typeof xInvert<R, E, I, A>> = xInvert;
+  map: <Rout, Rin, E>(
+    ...args: Parameters<typeof xMap<Rout, Rin, E, I, A>>
+  ) => ReturnType<typeof xMap<Rout, Rin, E, I, A>> = xMap;
+  mapErr: <Eout, R, Ein>(
+    ...args: Parameters<typeof xMapErr<Eout, R, Ein, I, A>>
+  ) => ReturnType<typeof xMapErr<Eout, R, Ein, I, A>> = xMapErr;
+  try: <R, E>(
+    ...args: Parameters<typeof xTry<R, E, I, A>>
+  ) => ReturnType<typeof xTry<R, E, I, A>> = xTry;
+  then: <R1, R2, E>(
+    ...args: Parameters<typeof xThen<R1, R2, E, I, A>>
+  ) => ReturnType<typeof xThen<R1, R2, E, I, A>> = xThen;
+  catch: <R, E, Eout>(
+    ...args: Parameters<typeof xCatch<R, E, I, A, Eout>>
+  ) => ReturnType<typeof xCatch<R, E, I, A, Eout>> = xCatch;
+  $$<Args extends any[], R, E>(
+    Cons: new () => $X<Args, R, E, I, A>,
+  ): (...args: Args) => X<R, E, I, A> {
+    return (...args) => new Cons().$(...args);
+  }
+  use<T extends ClassX<I, A>>(Cons: new () => T): Omit<T, keyof ClassX<I, A>> {
+    return new Cons();
+  }
+}
+export class ClassXa<I = never> extends ClassX<I, AsyncTag> {}
+
+export function xReading<D, R, E, I, A>(
+  d: D,
+  x: X<R, E, MergeR<D, I>, A>,
+): X<R, E, I, A> {
+  return new ClassX<I, A>().reading(d, x);
 }
 
-const t: Fn0X$<number, { r: { a: number } }> = FnX(function* (): ReturnType<
+export function FnX<Args extends any[], R, E, I, A>(
+  f: (this: ClassX<I, A>, ...args: Args) => X<R, E, I, A>,
+): FnX<Args, R, E, I, A> {
+  return (...args) => f.bind(new ClassX<I, A>())(...args);
+}
+
+const t: Fn0XOk<number, { r: { a: number } }> = FnX(function* (): ReturnType<
   typeof t
 > {
   return 2;
 });
 
-const t2: FnX$<[number], number, { r: { a: number } }> = FnX(function* (a) {
+const t2: FnXOk<[number], number, { r: { a: number } }> = FnX(function* (a) {
   const helper = this.fn(function* (b: number) {
     // const [b2] = this.args;
     return yield* this.pure(b * 2);
@@ -473,6 +479,13 @@ const t2: FnX$<[number], number, { r: { a: number } }> = FnX(function* (a) {
   const mult = yield* helper(2);
   const r = yield* this.ask;
   return mult * a * r.a;
+});
+
+const ts: Fn0Xa<
+  string,
+  $.Maybe<{ a: number }> | string | $.Result<number, string>
+> = FnX(function* () {
+  return yield* xAwait(() => Promise.resolve("Hello"));
 });
 
 export type FnX<
@@ -488,14 +501,14 @@ export type FnX_<
   I = never,
   A = never,
 > = RawFnX<Args, void, E, I, A>;
-export type FnX$<Args extends any[], R = void, I = never, A = never> = RawFnX<
+export type FnXOk<Args extends any[], R = void, I = never, A = never> = RawFnX<
   Args,
   R,
   never,
   I,
   A
 >;
-export type FnX_$<Args extends any[], I = never, A = never> = RawFnX<
+export type FnX_Ok<Args extends any[], I = never, A = never> = RawFnX<
   Args,
   void,
   never,
@@ -517,14 +530,14 @@ export type FnXa_<Args extends any[] = [], E = never, I = never> = RawFnX<
   I,
   Async
 >;
-export type FnXa$<Args extends any[], R = void, I = never> = RawFnX<
+export type FnXaOk<Args extends any[], R = void, I = never> = RawFnX<
   Args,
   R,
   never,
   I,
   Async
 >;
-export type FnXa_$<Args extends any[], I = never> = RawFnX<
+export type FnXa_Ok<Args extends any[], I = never> = RawFnX<
   Args,
   void,
   never,
@@ -540,10 +553,220 @@ export type Fn0X<R = void, E = never, I = never, A = never> = RawFnX<
   A
 >;
 export type Fn0X_<E = never, I = never, A = never> = RawFnX<[], void, E, I, A>;
-export type Fn0X$<R = void, I = never, A = never> = RawFnX<[], R, never, I, A>;
-export type Fn0X_$<I = never, A = never> = RawFnX<[], void, never, I, A>;
+export type Fn0XOk<R = void, I = never, A = never> = RawFnX<[], R, never, I, A>;
+export type Fn0X_Ok<I = never, A = never> = RawFnX<[], void, never, I, A>;
 
 export type Fn0Xa<R = void, E = never, I = never> = RawFnX<[], R, E, I, Async>;
 export type Fn0Xa_<E = never, I = never> = RawFnX<[], void, E, I, Async>;
-export type Fn0Xa$<R = void, I = never> = RawFnX<[], R, never, I, Async>;
-export type Fn0Xa_$<I = never> = RawFnX<[], void, never, I, Async>;
+export type Fn0XaOk<R = void, I = never> = RawFnX<[], R, never, I, Async>;
+export type Fn0Xa_Ok<I = never> = RawFnX<[], void, never, I, Async>;
+
+export abstract class $X<
+  Args extends any[] = [],
+  R = void,
+  E = never,
+  I = never,
+  A = never,
+> extends ClassX<I, A> {
+  abstract $(...args: Args): X<R, E, I, A>;
+}
+export abstract class $X_<
+  Args extends any[],
+  E = never,
+  I = never,
+  A = never,
+> extends $X<Args, void, E, I, A> {}
+export abstract class $XOk<
+  Args extends any[],
+  R = void,
+  I = never,
+  A = never,
+> extends $X<Args, R, never, I, A> {}
+export abstract class $X_Ok<
+  Args extends any[],
+  I = never,
+  A = never,
+> extends $X<Args, void, never, I, A> {}
+
+export abstract class $Xa<
+  Args extends any[],
+  R = void,
+  E = never,
+  I = never,
+> extends $X<Args, R, E, I, Async> {}
+export abstract class $Xa_<Args extends any[], E = never, I = never> extends $X<
+  Args,
+  void,
+  E,
+  I,
+  Async
+> {}
+export abstract class $XaOk<Args extends any[], R = void, I = never> extends $X<
+  Args,
+  R,
+  never,
+  I,
+  Async
+> {}
+export abstract class $Xa_Ok<Args extends any[], I = never> extends $X<
+  Args,
+  void,
+  never,
+  I,
+  Async
+> {}
+
+export abstract class $0X<R = void, E = never, I = never, A = never> extends $X<
+  [],
+  R,
+  E,
+  I,
+  A
+> {}
+export abstract class $0X_<E = never, I = never, A = never> extends $X<
+  [],
+  void,
+  E,
+  I,
+  A
+> {}
+export abstract class $0XOk<R = void, I = never, A = never> extends $X<
+  [],
+  R,
+  never,
+  I,
+  A
+> {}
+export abstract class $0X_Ok<I = never, A = never> extends $X<
+  [],
+  void,
+  never,
+  I,
+  A
+> {}
+
+export abstract class $0Xa<R = void, E = never, I = never> extends $X<
+  [],
+  R,
+  E,
+  I,
+  Async
+> {}
+export abstract class $0Xa_<E = never, I = never> extends $X<
+  [],
+  void,
+  E,
+  I,
+  Async
+> {}
+export abstract class $0XaOk<R = void, I = never> extends $X<
+  [],
+  R,
+  never,
+  I,
+  Async
+> {}
+export abstract class $0Xa_Ok<I = never> extends $X<
+  [],
+  void,
+  never,
+  I,
+  Async
+> {}
+
+export function xPipe<E, I, As, A>(value: X<A, E, I, As>): X<A, E, I, As>;
+export function xPipe<E, I, As, A, B>(
+  value: X<A, E, I, As>,
+  fn1: (arg: A) => X<B, E, I, As>,
+): X<B, E, I, As>;
+export function xPipe<Er, In, As, A, B, C>(
+  value: X<A, Er, In, As>,
+  fn1: (arg: A) => X<B, Er, In, As>,
+  fn2: (arg: B) => X<C, Er, In, As>,
+): X<C, Er, In, As>;
+export function xPipe<Er, In, As, A, B, C, D>(
+  value: X<A, Er, In, As>,
+  fn1: (arg: A) => X<B, Er, In, As>,
+  fn2: (arg: B) => X<C, Er, In, As>,
+  fn3: (arg: C) => X<D, Er, In, As>,
+): X<D, Er, In, As>;
+export function xPipe<Er, In, As, A, B, C, D, E>(
+  value: X<A, Er, In, As>,
+  fn1: (arg: A) => X<B, Er, In, As>,
+  fn2: (arg: B) => X<C, Er, In, As>,
+  fn3: (arg: C) => X<D, Er, In, As>,
+  fn4: (arg: D) => X<E, Er, In, As>,
+): X<E, Er, In, As>;
+export function xPipe<Er, In, As, A, B, C, D, E, F>(
+  value: X<A, Er, In, As>,
+  fn1: (arg: A) => X<B, Er, In, As>,
+  fn2: (arg: B) => X<C, Er, In, As>,
+  fn3: (arg: C) => X<D, Er, In, As>,
+  fn4: (arg: D) => X<E, Er, In, As>,
+  fn5: (arg: E) => X<F, Er, In, As>,
+): X<F, Er, In, As>;
+export function xPipe<Er, In, As, A, B, C, D, E, F, G>(
+  value: X<A, Er, In, As>,
+  fn1: (arg: A) => X<B, Er, In, As>,
+  fn2: (arg: B) => X<C, Er, In, As>,
+  fn3: (arg: C) => X<D, Er, In, As>,
+  fn4: (arg: D) => X<E, Er, In, As>,
+  fn5: (arg: E) => X<F, Er, In, As>,
+  fn6: (arg: F) => X<G, Er, In, As>,
+): X<F, Er, In, As>;
+export function xPipe<Er, In, As, A, B, C, D, E, F, G, H>(
+  value: X<A, Er, In, As>,
+  fn1: (arg: A) => X<B, Er, In, As>,
+  fn2: (arg: B) => X<C, Er, In, As>,
+  fn3: (arg: C) => X<D, Er, In, As>,
+  fn4: (arg: D) => X<E, Er, In, As>,
+  fn5: (arg: E) => X<F, Er, In, As>,
+  fn6: (arg: F) => X<G, Er, In, As>,
+  fn7: (arg: G) => X<H, Er, In, As>,
+): X<F, Er, In, As>;
+export function xPipe<Er, In, As, A, B, C, D, E, F, G, H, I>(
+  value: X<A, Er, In, As>,
+  fn1: (arg: A) => X<B, Er, In, As>,
+  fn2: (arg: B) => X<C, Er, In, As>,
+  fn3: (arg: C) => X<D, Er, In, As>,
+  fn4: (arg: D) => X<E, Er, In, As>,
+  fn5: (arg: E) => X<F, Er, In, As>,
+  fn6: (arg: F) => X<G, Er, In, As>,
+  fn7: (arg: G) => X<H, Er, In, As>,
+  fn8: (arg: H) => X<I, Er, In, As>,
+): X<F, Er, In, As>;
+export function xPipe<Er, In, As, A, B, C, D, E, F, G, H, I, J>(
+  value: X<A, Er, In, As>,
+  fn1: (arg: A) => X<B, Er, In, As>,
+  fn2: (arg: B) => X<C, Er, In, As>,
+  fn3: (arg: C) => X<D, Er, In, As>,
+  fn4: (arg: D) => X<E, Er, In, As>,
+  fn5: (arg: E) => X<F, Er, In, As>,
+  fn6: (arg: F) => X<G, Er, In, As>,
+  fn7: (arg: G) => X<H, Er, In, As>,
+  fn8: (arg: H) => X<I, Er, In, As>,
+  fn9: (arg: I) => X<J, Er, In, As>,
+): X<J, Er, In, As>;
+export function xPipe<Er, In, As, A, B, C, D, E, F, G, H, I, J, K>(
+  value: X<A, Er, In, As>,
+  fn1: (arg: A) => X<B, Er, In, As>,
+  fn2: (arg: B) => X<C, Er, In, As>,
+  fn3: (arg: C) => X<D, Er, In, As>,
+  fn4: (arg: D) => X<E, Er, In, As>,
+  fn5: (arg: E) => X<F, Er, In, As>,
+  fn6: (arg: F) => X<G, Er, In, As>,
+  fn7: (arg: G) => X<H, Er, In, As>,
+  fn8: (arg: H) => X<I, Er, In, As>,
+  fn9: (arg: I) => X<J, Er, In, As>,
+  fn10: (arg: J) => X<K, Er, In, As>,
+): X<K, Er, In, As>;
+export function* xPipe(
+  value: Generator<any, any, any>,
+  ...fns: ((a: any) => Generator<any, any, any>)[]
+): any {
+  let acc = yield* value;
+  for (const fn of fns) {
+    acc = yield* fn(acc);
+  }
+  return acc;
+}
