@@ -40,6 +40,13 @@ type VariantRawVal<T extends ZV_T, DS extends ZV_DS, V extends keyof DS> = {
   ZodTypeProxy: Proxy.Of<ZodVariant<T, DS>>;
 };
 
+type RawVariant<T extends string, V extends string, D extends any> = {
+  Data: D;
+  Type: T;
+  Variant: V;
+  ZodTypeProxy: Proxy.Of<ZodVariant<T, { [K in keyof V]: Z.ZodType<D> }>>;
+};
+
 type VariantCons<T extends ZV_T, DS extends ZV_DS> = {
   [V in keyof DS]: DS[V] extends Z.ZodUndefined
     ? VariantRawVal<T, DS, V>
@@ -100,4 +107,17 @@ export function parse<T extends Z.ZodType>(
 ): $.Result<Z.infer<T>, Z.ZodError> {
   const parsed = z.safeParse(u);
   return parsed.success ? $.Ok(parsed.data) : $.Err(parsed.error);
+}
+
+export function RawVariant<T extends string, V extends string, D extends any>(
+  t: T,
+  v: V,
+  d: D,
+): RawVariant<T, V, D> {
+  return {
+    Data: d,
+    Variant: v,
+    Type: t,
+    ZodTypeProxy: Proxy.Of(),
+  };
 }

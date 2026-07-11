@@ -236,6 +236,10 @@ export type Fn10<A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, T> = FnN<
   T
 >;
 
+function rawPipe(value: any, fns: Function[]): any {
+  return fns.reduce((acc, fn) => fn(acc), value);
+}
+
 export function pipe<A>(value: A): A;
 export function pipe<A, B>(value: A, fn1: (arg: A) => B): B;
 export function pipe<A, B, C>(
@@ -321,5 +325,81 @@ export function pipe<A, B, C, D, E, F, G, H, I, J, K>(
 ): K;
 
 export function pipe(value: any, ...fns: Function[]): any {
-  return fns.reduce((acc, fn) => fn(acc), value);
+  return rawPipe(value, fns);
+}
+
+export const _: unique symbol = Symbol();
+
+export function $<A, B, C>(fn1: (arg: A) => B, fn2: (arg: B) => C): Fn1<A, C>;
+export function $<A, B, C, D>(
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+): Fn1<A, D>;
+export function $<A, B, C, D, E>(
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+): Fn1<A, E>;
+export function $<A, B, C, D, E, F>(
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+): Fn1<A, F>;
+export function $<A, B, C, D, E, F, G>(
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+  fn6: (arg: F) => G,
+): Fn1<A, F>;
+export function $<A, B, C, D, E, F, G, H>(
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+  fn6: (arg: F) => G,
+  fn7: (arg: G) => H,
+): Fn1<A, F>;
+export function $<A, B, C, D, E, F, G, H, I>(
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+  fn6: (arg: F) => G,
+  fn7: (arg: G) => H,
+  fn8: (arg: H) => I,
+): Fn1<A, F>;
+export function $<A, B, C, D, E, F, G, H, I, J>(
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+  fn6: (arg: F) => G,
+  fn7: (arg: G) => H,
+  fn8: (arg: H) => I,
+  fn9: (arg: I) => J,
+): Fn1<A, J>;
+export function $<A, B, C, D, E, F, G, H, I, J, K>(
+  fn1: (arg: A) => B,
+  fn2: (arg: B) => C,
+  fn3: (arg: C) => D,
+  fn4: (arg: D) => E,
+  fn5: (arg: E) => F,
+  fn6: (arg: F) => G,
+  fn7: (arg: G) => H,
+  fn8: (arg: H) => I,
+  fn9: (arg: I) => J,
+  fn10: (arg: J) => K,
+): Fn1<A, K>;
+
+export function $(...fns: Function[]): any {
+  return (value: any) => rawPipe(value, fns);
 }

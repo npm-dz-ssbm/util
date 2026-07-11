@@ -736,17 +736,17 @@ export function xPipe<Er, In, As, A, B, C, D, E, F, G, H, I, J>(
 ): X<J, Er, In, As>;
 export function xPipe<Er, In, As, A, B, C, D, E, F, G, H, I, J, K>(
   value: X<A, Er, In, As>,
-  fn1: (arg: A) => X<B, Er, In, As>,
-  fn2: (arg: B) => X<C, Er, In, As>,
-  fn3: (arg: C) => X<D, Er, In, As>,
-  fn4: (arg: D) => X<E, Er, In, As>,
-  fn5: (arg: E) => X<F, Er, In, As>,
-  fn6: (arg: F) => X<G, Er, In, As>,
-  fn7: (arg: G) => X<H, Er, In, As>,
-  fn8: (arg: H) => X<I, Er, In, As>,
-  fn9: (arg: I) => X<J, Er, In, As>,
-  fn10: (arg: J) => X<K, Er, In, As>,
-): X<K, Er, In, As>;
+  fn1: (arg: A) => BaseX<B, Er, In, As>,
+  fn2: (arg: B) => BaseX<C, Er, In, As>,
+  fn3: (arg: C) => BaseX<D, Er, In, As>,
+  fn4: (arg: D) => BaseX<E, Er, In, As>,
+  fn5: (arg: E) => BaseX<F, Er, In, As>,
+  fn6: (arg: F) => BaseX<G, Er, In, As>,
+  fn7: (arg: G) => BaseX<H, Er, In, As>,
+  fn8: (arg: H) => BaseX<I, Er, In, As>,
+  fn9: (arg: I) => BaseX<J, Er, In, As>,
+  fn10: (arg: J) => BaseX<K, Er, In, As>,
+): BaseX<K, Er, In, As>;
 export function* xPipe(
   value: Generator<any, any, any>,
   ...fns: ((a: any) => Generator<any, any, any>)[]
